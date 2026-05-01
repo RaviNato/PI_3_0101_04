@@ -78,9 +78,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // =========================================================================
-    // TELA 1: JOGADOR FORA DO BIOMA OU BLOQUEADO(TELA CINZA)
-    // =========================================================================
     if (_biomaAtual == null) {
       return Scaffold(
         backgroundColor: Colors.grey.shade900,
@@ -97,17 +94,10 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  "Siga para o próximo marcador de missão no mapa para continuar sua jornada.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white60, fontSize: 16),
-                ),
                 const SizedBox(height: 32),
-                // Mostra as coordenadas atuais mesmo bloqueado, para ajudar você a debugar
                 if (_posicaoAtual != null)
                   Text(
-                    "Sua posição atual:\nLat: ${_posicaoAtual!.latitude.toStringAsFixed(4)}\nLng: ${_posicaoAtual!.longitude.toStringAsFixed(4)}",
+                    "Lat: ${_posicaoAtual!.latitude.toStringAsFixed(4)}\nLng: ${_posicaoAtual!.longitude.toStringAsFixed(4)}",
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.amber, fontStyle: FontStyle.italic),
                   ),
@@ -118,156 +108,152 @@ class _CharacterScreenState extends State<CharacterScreen> {
       );
     }
 
-    // =========================================================================
-    // TELA 2: JOGADOR DENTRO DO BIOMA LIBERADO (TELA PRINCIPAL DO RPG)
-    // =========================================================================
+    // TELA PRINCIPAL COM A IMAGEM DE FUNDO
     return Scaffold(
-      backgroundColor: Colors.black,
-        appBar: AppBar(
-        title: Text(_biomaAtual!.name), // Era _biomaAtual!.nome
-        backgroundColor: Colors.brown.shade800,
-        foregroundColor: Colors.white,
+      extendBodyBehindAppBar: true, 
+      appBar: AppBar(
+        title: Text(_biomaAtual!.name, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white)),
+        backgroundColor: Colors.transparent, 
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- Card 1: Avatar do Aventureiro ---
-            Card(
-              color: Colors.grey.shade900,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.brown.shade900,
-                      child: const Icon(Icons.person, size: 60, color: Colors.white70), 
-                    ),
-                    const SizedBox(width: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Herói Desconhecido',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        Text('Classe: Explorador', style: TextStyle(color: Colors.white70)),
-                        Text('Nível: 1', style: TextStyle(color: Colors.amber)),
-                      ],
-                    ),
-                  ],
-                ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. O Fundo do Bioma (Sua imagem png)
+          Image.asset(
+            _biomaAtual!.assetImagePath,
+            fit: BoxFit.cover, 
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.blueGrey.shade900,
+              child: const Center(child: Text("Imagem não encontrada", style: TextStyle(color: Colors.white54))),
+            ),
+          ),
+
+          // 2. Escurecimento para leitura
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black87],
+                stops: [0.5, 1.0], 
               ),
             ),
-            const SizedBox(height: 16),
+          ),
 
-            // --- Card 2: Status Base ---
-            Card(
-              color: Colors.grey.shade900,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: const [
-                    Text('Atributos Físicos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Divider(color: Colors.white24),
-                    StatBar(label: 'HP', value: 100, maxValue: 100, color: Colors.red),
-                    StatBar(label: 'Vigor', value: 45, maxValue: 100, color: Colors.green),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // --- Card 3: O Radar Mágico (GPS) ---
-            Card(
-              color: Colors.green.shade900,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          // 3. A Interface Discreta
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Row(
-                      children: const [
-                        Icon(Icons.explore, color: Colors.amber),
-                        SizedBox(width: 8),
-                        Text('Bússola Mágica', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const Divider(color: Colors.white24),
-                    Text(
-                      'Condição para avançar: ${_biomaAtual!.unlockCondition}', // Nova propriedade que a equipe criou
-                      style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-                    ),
-                    const SizedBox(height: 12),
-                    Text('Rosa dos Ventos: ${_posicaoAtual!.heading.toStringAsFixed(1)}°', style: const TextStyle(color: Colors.amber)),
-                  ],
-                ),
+                    children: [
+                      const CircleAvatar(
+                        radius: 25,
+                        backgroundColor: Colors.black54,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('Herói', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text('Nível 1', style: TextStyle(color: Colors.amber, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  StatBar(label: 'HP', value: 100, maxValue: 100, color: Colors.red),
+                                  SizedBox(height: 8),
+                                  StatBar(label: 'SP', value: 45, maxValue: 100, color: Colors.green),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.explore, color: Colors.amber, size: 28),
+                                  const SizedBox(height: 4),
+                                  Text('${_posicaoAtual!.heading.toStringAsFixed(0)}°', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade700,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            nivelProgresso++; 
+                          });
+                        },
+                        child: Text("Completar Missão: ${_biomaAtual!.unlockCondition}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      )
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // --- Botão para Completar a Missão (Apenas para Teste da Sprint 1) ---
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber.shade700,
-                padding: const EdgeInsets.symmetric(vertical: 16)
-              ),
-              onPressed: () {
-                setState(() {
-                  nivelProgresso++; // Aumenta o progresso para liberar o próximo bioma
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Missão Completa! Dirija-se ao próximo Bioma.")),
-                );
-              },
-              child: const Text("Completar Missão Deste Bioma", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            )
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// =========================================================================
-// Barra de Status do aventureiro
-// =========================================================================
 class StatBar extends StatelessWidget {
   final String label;
   final double value;
   final double maxValue;
   final Color color;
 
-  const StatBar({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.maxValue,
-    required this.color,
-  });
+  const StatBar({super.key, required this.label, required this.value, required this.maxValue, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 50,
-            child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    return Row(
+      children: [
+        SizedBox(width: 24, child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
+        Expanded(
+          child: LinearProgressIndicator(
+            value: value / maxValue,
+            backgroundColor: Colors.black,
+            color: color,
+            minHeight: 6, 
+            borderRadius: BorderRadius.circular(4),
           ),
-          Expanded(
-            child: LinearProgressIndicator(
-              value: value / maxValue,
-              backgroundColor: Colors.black,
-              color: color,
-              minHeight: 10,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

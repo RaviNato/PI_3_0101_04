@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
+import '../character_screen.dart';
 
 /// HomeScreen — Tela inicial do Omnizona
 /// Visual: pergaminho medieval, tons de marrom, madeira, rústico
@@ -342,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen>
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
-                pageBuilder: (_, a1, a2) => const GameScreen(),
+                pageBuilder: (_, a1, a2) => const CharacterScreen(),
                 transitionsBuilder: (_, anim, __, child) =>
                     FadeTransition(opacity: anim, child: child),
                 transitionDuration: const Duration(milliseconds: 800),
@@ -350,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen>
             );
           },
         ),
+// ... restante do código ...
         const SizedBox(height: 14),
         _MedievalButton(
           label: 'CONTINUAR JOGO',

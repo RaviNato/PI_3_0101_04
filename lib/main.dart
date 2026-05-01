@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'telas.dart'; // Importa o arquivo onde criamos as telas
+// Importe o arquivo correto da nova tela da equipe
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,14 +12,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Meu Jogo Flutter',
-      debugShowCheckedModeBanner: false, // Remove a faixa de "Debug"
+      title: 'Omnizona',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.brown, // Mudamos para a paleta rústica
         useMaterial3: true,
       ),
-      // Define a tela inicial do jogo
-      home: const TelaInicio(), 
+      // Substituímos a TelaInicio pela HomeScreen
+      home: const HomeScreen(), 
     );
   }
 }

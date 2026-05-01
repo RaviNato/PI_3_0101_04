@@ -31,10 +31,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/images/
   # Descomente e coloque os assets reais quando disponíveis:
-  # assets:
-  #   - assets/images/logo.png
-  #   - assets/images/bg_home.jpg
   #   - assets/audio/ambient_rpg.mp3
 
   # fonts:
