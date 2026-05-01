@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'game_screen.dart';
 
 /// HomeScreen — Tela inicial do Omnizona
-///
-/// Requisitos cobertos:
-///  • Interface navegável sem treinamento prévio
-///  • Som passivo (comentado — adicionar audioplayers quando assets estiverem prontos)
-///  • Responsividade de telas
-///  • Integração do BD (Firebase) no botão "Jogar"
-///  • Elementos visuais (texto + imagens/ícones temáticos)
-///  • Botões "Jogar" e "Continuar Jogo"
+/// Visual: pergaminho medieval, tons de marrom, madeira, rústico
+/// Sem Firebase por enquanto (integração será feita depois)
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,317 +16,311 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeIn;
-  late Animation<double> _titleScale;
+  late Animation<double> _slideUp;
 
-  bool _isLoading = false;
-  bool _hasSavedGame = false;
-
-  // ─── Cores temáticas RPG ─────────────────────────────────────────────────
-  static const Color _bgDark = Color(0xFF0B0C10);
-  static const Color _bgMid = Color(0xFF1A1A2E);
-  static const Color _accent = Color(0xFFE8B84B); // dourado
-  static const Color _accentGlow = Color(0xFFFFD166);
-  static const Color _textLight = Color(0xFFF0E6CC);
-  static const Color _textMuted = Color(0xFF8D8D8D);
-  static const Color _btnPrimary = Color(0xFF4A1942);
-  static const Color _btnSecondary = Color(0xFF1B2A4A);
+  // ── Paleta pergaminho/medieval ──────────────────────────────────────────
+  static const Color _bgDeep    = Color(0xFF1C1008); // marrom quase preto
+  static const Color _bgMid     = Color(0xFF2E1A0E); // marrom escuro
+  static const Color _parchment = Color(0xFFF2E0B6); // pergaminho claro
+  static const Color _parchmentDark = Color(0xFFD4B483); // pergaminho médio
+  static const Color _inkBrown  = Color(0xFF3D1F00); // marrom tinta
+  static const Color _goldWarm  = Color(0xFFBF8A30); // dourado envelhecido
+  static const Color _goldLight = Color(0xFFE8C060); // dourado claro
+  static const Color _redWax    = Color(0xFF7A1C1C); // vermelho lacre
 
   @override
   void initState() {
     super.initState();
-
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1400),
     );
-
     _fadeIn = CurvedAnimation(
       parent: _animController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      curve: const Interval(0.0, 0.7, curve: Curves.easeIn),
     );
-
-    _titleScale = Tween<double>(begin: 0.85, end: 1.0).animate(
+    _slideUp = Tween<double>(begin: 30, end: 0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
       ),
     );
-
     _animController.forward();
-    _checkSavedGame();
-
-    // ── Som ambiente ──────────────────────────────────────────────────────
-    // Para ativar o som, adicione ao pubspec.yaml:
-    //   audioplayers: ^6.0.0
-    // Coloque o arquivo em: assets/audio/ambient_rpg.mp3
-    // Depois descomente o bloco abaixo:
-    //
-    // _player = AudioPlayer();
-    // _player.setReleaseMode(ReleaseMode.loop);
-    // await _player.play(AssetSource('audio/ambient_rpg.mp3'), volume: 0.3);
   }
 
   @override
   void dispose() {
     _animController.dispose();
-    // _player.dispose(); // descomente se usar audioplayers
     super.dispose();
   }
 
-  // ─── Verifica se o usuário tem progresso salvo no Firestore ──────────────
-  Future<void> _checkSavedGame() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final doc = await FirebaseFirestore.instance
-          .collection('players')
-          .doc(user.uid)
-          .get();
-
-      if (mounted) {
-        setState(() {
-          _hasSavedGame = doc.exists && (doc.data()?['progress'] != null);
-        });
-      }
-    } catch (e) {
-      debugPrint('Erro ao verificar jogo salvo: $e');
-    }
-  }
-
-  // ─── Botão "Jogar" — cria novo jogo no Firebase ──────────────────────────
-  Future<void> _onPlayPressed() async {
-    setState(() => _isLoading = true);
-
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-
-      // Login anônimo caso não haja sessão
-      if (user == null) {
-        final credential = await FirebaseAuth.instance.signInAnonymously();
-        user = credential.user;
-      }
-
-      if (user == null) throw Exception('Falha na autenticação.');
-
-      // Cria / sobrescreve documento de progresso inicial
-      await FirebaseFirestore.instance
-          .collection('players')
-          .doc(user.uid)
-          .set({
-        'progress': {
-          'currentZone': 'forest',
-          'unlockedZones': ['forest'],
-          'inventory': [],
-          'dialogFlags': {},
-        },
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/game');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackbar('Não foi possível iniciar o jogo. Tente novamente.');
-      }
-      debugPrint('Erro ao iniciar jogo: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // ─── Botão "Continuar Jogo" ───────────────────────────────────────────────
-  Future<void> _onContinuePressed() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('Usuário não autenticado.');
-
-      // Confirma que o progresso existe antes de navegar
-      final doc = await FirebaseFirestore.instance
-          .collection('players')
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        throw Exception('Nenhum jogo salvo encontrado.');
-      }
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/game');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackbar('Não foi possível carregar o jogo salvo.');
-      }
-      debugPrint('Erro ao continuar jogo: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showErrorSnackbar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red.shade800,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  // ─── Build ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isSmall = size.width < 380;
 
     return Scaffold(
-      backgroundColor: _bgDark,
+      backgroundColor: _bgDeep,
       body: Stack(
         children: [
-          // Fundo gradiente
+          // Fundo texturizado
           _buildBackground(size),
 
-          // Partículas decorativas (círculos difusos)
-          _buildDecoParticles(size),
-
-          // Conteúdo principal
+          // Conteúdo
           SafeArea(
-            child: FadeTransition(
-              opacity: _fadeIn,
-              child: SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: size.height - 80),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmall ? 20.0 : 32.0,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(height: size.height * 0.06),
-                        _buildLogo(isSmall),
-                        SizedBox(height: size.height * 0.04),
-                        _buildTitle(isSmall),
-                        const SizedBox(height: 12),
-                        _buildSubtitle(isSmall),
-                        SizedBox(height: size.height * 0.07),
-                        _buildBiomesRow(isSmall),
-                        SizedBox(height: size.height * 0.07),
-                        _buildButtons(isSmall),
-                        SizedBox(height: size.height * 0.06),
-                        _buildFooter(),
-                        const SizedBox(height: 24),
-                      ],
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (_, __) => FadeTransition(
+                opacity: _fadeIn,
+                child: Transform.translate(
+                  offset: Offset(0, _slideUp.value),
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: size.height - 48),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmall ? 20 : 32,
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(height: size.height * 0.05),
+                            _buildTopOrnament(),
+                            SizedBox(height: size.height * 0.03),
+                            _buildTitle(isSmall),
+                            const SizedBox(height: 8),
+                            _buildDivider(),
+                            const SizedBox(height: 12),
+                            _buildSubtitle(isSmall),
+                            SizedBox(height: size.height * 0.05),
+                            _buildParchmentCard(isSmall),
+                            SizedBox(height: size.height * 0.05),
+                            _buildButtons(context, isSmall),
+                            SizedBox(height: size.height * 0.04),
+                            _buildBottomOrnament(),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-
-          // Overlay de carregamento
-          if (_isLoading) _buildLoadingOverlay(),
         ],
       ),
     );
   }
 
-  // ─── Widgets internos ─────────────────────────────────────────────────────
+  // ── Fundo ────────────────────────────────────────────────────────────────
 
   Widget _buildBackground(Size size) {
     return Container(
       width: size.width,
       height: size.height,
       decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0.0, -0.4),
-          radius: 1.2,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF1C0F2E),
-            Color(0xFF0B0C10),
+            Color(0xFF1C1008),
+            Color(0xFF2E1A0E),
+            Color(0xFF1C1008),
           ],
         ),
       ),
+      child: CustomPaint(painter: _WoodGrainPainter()),
     );
   }
 
-  Widget _buildDecoParticles(Size size) {
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: CustomPaint(
-          painter: _StarfieldPainter(),
+  // ── Ornamentos ───────────────────────────────────────────────────────────
+
+  Widget _buildTopOrnament() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _ornamentLine(),
+        const SizedBox(width: 12),
+        Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
+        const SizedBox(width: 8),
+        Icon(Icons.shield, color: _goldWarm, size: 28),
+        const SizedBox(width: 8),
+        Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
+        const SizedBox(width: 12),
+        _ornamentLine(),
+      ],
+    );
+  }
+
+  Widget _ornamentLine() {
+    return Container(
+      width: 50,
+      height: 1.5,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.transparent, _goldWarm, Colors.transparent],
         ),
       ),
     );
   }
 
-  Widget _buildLogo(bool isSmall) {
-    return ScaleTransition(
-      scale: _titleScale,
-      child: Container(
-        width: isSmall ? 80 : 100,
-        height: isSmall ? 80 : 100,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _btnPrimary,
-          border: Border.all(color: _accent, width: 2.5),
-          boxShadow: [
-            BoxShadow(
-              color: _accentGlow.withOpacity(0.35),
-              blurRadius: 24,
-              spreadRadius: 4,
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.transparent, _goldWarm.withOpacity(0.6)],
+              ),
             ),
-          ],
+          ),
         ),
-        // Substitua pelo asset real quando disponível:
-        // child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
-        child: Icon(
-          Icons.explore,
-          size: isSmall ? 42 : 52,
-          color: _accentGlow,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Icon(Icons.circle, color: _goldWarm, size: 6),
         ),
-      ),
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_goldWarm.withOpacity(0.6), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
+
+  Widget _buildBottomOrnament() {
+    return Column(
+      children: [
+        _buildDivider(),
+        const SizedBox(height: 10),
+        Text(
+          'PUC-Campinas · Projeto Integrador III · 2026',
+          style: TextStyle(
+            fontSize: 10,
+            color: _parchmentDark.withOpacity(0.4),
+            letterSpacing: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Título ───────────────────────────────────────────────────────────────
 
   Widget _buildTitle(bool isSmall) {
-    return ScaleTransition(
-      scale: _titleScale,
+    return Column(
+      children: [
+        Text(
+          'OMNIZONA',
+          style: TextStyle(
+            fontSize: isSmall ? 38 : 50,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 8,
+            color: _parchment,
+            shadows: [
+              Shadow(color: _goldWarm.withOpacity(0.8), blurRadius: 12),
+              Shadow(color: _inkBrown, blurRadius: 2, offset: const Offset(2, 2)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '— JOGO DE RPG —',
+          style: TextStyle(
+            fontSize: isSmall ? 11 : 13,
+            letterSpacing: 5,
+            color: _goldWarm,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubtitle(bool isSmall) {
+    return Text(
+      '"Ressignifique sua vivência acadêmica\natravés de uma jornada épica"',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: isSmall ? 13 : 14,
+        color: _parchmentDark.withOpacity(0.8),
+        fontStyle: FontStyle.italic,
+        height: 1.6,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  // ── Card de pergaminho com biomas ────────────────────────────────────────
+
+  Widget _buildParchmentCard(bool isSmall) {
+    const biomes = [
+      {'icon': Icons.forest,                'label': 'Floresta', 'color': Color(0xFF4A7C59)},
+      {'icon': Icons.ac_unit,               'label': 'Geleira',  'color': Color(0xFF7EC8E3)},
+      {'icon': Icons.waves,                 'label': 'Oceano',   'color': Color(0xFF3A7BD5)},
+      {'icon': Icons.wb_sunny,              'label': 'Deserto',  'color': Color(0xFFD4A017)},
+      {'icon': Icons.local_fire_department, 'label': 'Vulcão',   'color': Color(0xFFCC4400)},
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5E6C8),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: _goldWarm.withOpacity(0.6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: _goldWarm.withOpacity(0.1),
+            blurRadius: 8,
+          ),
+        ],
+      ),
       child: Column(
         children: [
           Text(
-            'OMNIZONA',
+            'OS CINCO BIOMAS',
             style: TextStyle(
-              fontSize: isSmall ? 36 : 46,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 6,
-              color: _accentGlow,
-              shadows: [
-                Shadow(
-                  color: _accent.withOpacity(0.7),
-                  blurRadius: 16,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              fontSize: 12,
+              letterSpacing: 4,
+              color: _inkBrown.withOpacity(0.7),
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
-          Container(
-            height: 2,
-            width: isSmall ? 160 : 220,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  _accent,
-                  Colors.transparent,
-                ],
-              ),
+          Divider(color: _inkBrown.withOpacity(0.2), thickness: 1),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: biomes.map((b) => _BiomeChip(
+              icon: b['icon'] as IconData,
+              label: b['label'] as String,
+              color: b['color'] as Color,
+              small: isSmall,
+              onDark: false,
+            )).toList(),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Explore o Campus I da PUC-Campinas\ne descubra cada bioma mapeado no espaço real.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: isSmall ? 11 : 12,
+              color: _inkBrown.withOpacity(0.65),
+              fontStyle: FontStyle.italic,
+              height: 1.5,
             ),
           ),
         ],
@@ -341,106 +328,135 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildSubtitle(bool isSmall) {
-    return Text(
-      'Ressignifique sua vivência acadêmica',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: isSmall ? 13 : 15,
-        color: _textMuted,
-        letterSpacing: 1.2,
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
+  // ── Botões ───────────────────────────────────────────────────────────────
 
-  Widget _buildBiomesRow(bool isSmall) {
-    const biomes = [
-      {'icon': Icons.forest, 'label': 'Floresta', 'color': Color(0xFF2D6A4F)},
-      {'icon': Icons.ac_unit, 'label': 'Geleira', 'color': Color(0xFF48CAE4)},
-      {'icon': Icons.waves, 'label': 'Oceano', 'color': Color(0xFF0077B6)},
-      {'icon': Icons.wb_sunny, 'label': 'Deserto', 'color': Color(0xFFE9C46A)},
-      {'icon': Icons.local_fire_department, 'label': 'Vulcão', 'color': Color(0xFFE76F51)},
-    ];
-
+  Widget _buildButtons(BuildContext context, bool isSmall) {
     return Column(
       children: [
-        Text(
-          '— OS CINCO BIOMAS —',
-          style: TextStyle(
-            fontSize: isSmall ? 10 : 11,
-            color: _textMuted,
-            letterSpacing: 3,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: biomes.map((b) {
-            return _BiomeChip(
-              icon: b['icon'] as IconData,
-              label: b['label'] as String,
-              color: b['color'] as Color,
-              small: isSmall,
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildButtons(bool isSmall) {
-    return Column(
-      children: [
-        // ── Jogar ──
-        _OmniButton(
+        _MedievalButton(
           label: 'JOGAR',
           icon: Icons.play_arrow_rounded,
-          color: _btnPrimary,
-          glowColor: _accent,
-          textColor: _accentGlow,
-          onPressed: _isLoading ? null : _onPlayPressed,
+          primary: true,
           isSmall: isSmall,
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (_, a1, a2) => const GameScreen(),
+                transitionsBuilder: (_, anim, __, child) =>
+                    FadeTransition(opacity: anim, child: child),
+                transitionDuration: const Duration(milliseconds: 800),
+              ),
+            );
+          },
         ),
-        const SizedBox(height: 16),
-
-        // ── Continuar Jogo ──
-        _OmniButton(
+        const SizedBox(height: 14),
+        _MedievalButton(
           label: 'CONTINUAR JOGO',
           icon: Icons.bookmark_rounded,
-          color: _hasSavedGame ? _btnSecondary : _bgMid,
-          glowColor: _hasSavedGame ? Colors.blueAccent : Colors.transparent,
-          textColor: _hasSavedGame ? Colors.lightBlueAccent : _textMuted,
-          onPressed: (_isLoading || !_hasSavedGame) ? null : _onContinuePressed,
+          primary: false,
           isSmall: isSmall,
-          outlined: true,
-          tooltip: _hasSavedGame ? null : 'Nenhum jogo salvo encontrado',
+          onPressed: null, // habilitar após integração Firebase
+          tooltip: 'Disponível em breve',
         ),
       ],
     );
   }
+}
 
-  Widget _buildFooter() {
-    return Text(
-      'PUC-Campinas · Projeto Integrador III · 2026',
-      style: TextStyle(
-        fontSize: 11,
-        color: _textMuted.withOpacity(0.5),
-        letterSpacing: 0.8,
+// ─── Botão medieval ───────────────────────────────────────────────────────────
+
+class _MedievalButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool primary;
+  final bool isSmall;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+
+  static const Color _goldWarm  = Color(0xFFBF8A30);
+  static const Color _goldLight = Color(0xFFE8C060);
+  static const Color _inkBrown  = Color(0xFF3D1F00);
+  static const Color _redWax    = Color(0xFF7A1C1C);
+  static const Color _parchment = Color(0xFFF2E0B6);
+
+  const _MedievalButton({
+    required this.label,
+    required this.icon,
+    required this.primary,
+    required this.isSmall,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+
+    Widget btn = Container(
+      width: double.infinity,
+      height: isSmall ? 52 : 58,
+      decoration: BoxDecoration(
+        color: enabled
+            ? (primary ? _redWax : const Color(0xFF2E1A0E))
+            : const Color(0xFF2A1A0A),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: enabled
+              ? (primary ? _goldLight : _goldWarm.withOpacity(0.5))
+              : _goldWarm.withOpacity(0.2),
+          width: primary ? 2 : 1.5,
+        ),
+        boxShadow: enabled && primary
+            ? [
+                BoxShadow(
+                  color: _redWax.withOpacity(0.5),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: _goldWarm.withOpacity(0.2),
+                  blurRadius: 6,
+                ),
+              ]
+            : null,
       ),
-    );
-  }
-
-  Widget _buildLoadingOverlay() {
-    return Container(
-      color: Colors.black54,
-      child: const Center(
-        child: CircularProgressIndicator(
-          color: _accentGlow,
-          strokeWidth: 3,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(4),
+          onTap: onPressed,
+          splashColor: _goldWarm.withOpacity(0.2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: enabled
+                    ? (primary ? _goldLight : _goldWarm.withOpacity(0.6))
+                    : _goldWarm.withOpacity(0.2),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isSmall ? 13 : 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3,
+                  color: enabled
+                      ? (primary ? _parchment : _parchment.withOpacity(0.5))
+                      : _parchment.withOpacity(0.2),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+
+    if (tooltip != null) return Tooltip(message: tooltip!, child: btn);
+    return btn;
   }
 }
 
@@ -451,12 +467,14 @@ class _BiomeChip extends StatelessWidget {
   final String label;
   final Color color;
   final bool small;
+  final bool onDark;
 
   const _BiomeChip({
     required this.icon,
     required this.label,
     required this.color,
     required this.small,
+    required this.onDark,
   });
 
   @override
@@ -464,29 +482,24 @@ class _BiomeChip extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: small ? 40 : 48,
-          height: small ? 40 : 48,
+          width: small ? 38 : 44,
+          height: small ? 38 : 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: color.withOpacity(0.15),
-            border: Border.all(color: color.withOpacity(0.6), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.2),
-                blurRadius: 8,
-                spreadRadius: 1,
-              ),
-            ],
+            border: Border.all(color: color.withOpacity(0.7), width: 1.5),
           ),
-          child: Icon(icon, color: color, size: small ? 20 : 24),
+          child: Icon(icon, color: color, size: small ? 18 : 22),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         Text(
           label,
           style: TextStyle(
             fontSize: small ? 9 : 10,
-            color: color.withOpacity(0.85),
-            letterSpacing: 0.5,
+            color: onDark
+                ? color.withOpacity(0.85)
+                : const Color(0xFF3D1F00).withOpacity(0.75),
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -494,118 +507,34 @@ class _BiomeChip extends StatelessWidget {
   }
 }
 
-// ─── Botão temático ───────────────────────────────────────────────────────────
+// ─── Painter de textura de madeira no fundo ───────────────────────────────────
 
-class _OmniButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final Color glowColor;
-  final Color textColor;
-  final VoidCallback? onPressed;
-  final bool isSmall;
-  final bool outlined;
-  final String? tooltip;
-
-  const _OmniButton({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.glowColor,
-    required this.textColor,
-    required this.onPressed,
-    required this.isSmall,
-    this.outlined = false,
-    this.tooltip,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Widget button = AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: double.infinity,
-      height: isSmall ? 52 : 60,
-      decoration: BoxDecoration(
-        color: onPressed != null ? color : color.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: outlined
-            ? Border.all(color: glowColor.withOpacity(0.5), width: 1.5)
-            : null,
-        boxShadow: onPressed != null
-            ? [
-                BoxShadow(
-                  color: glowColor.withOpacity(0.3),
-                  blurRadius: 16,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onPressed,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: onPressed != null ? textColor : textColor.withOpacity(0.4), size: 22),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: isSmall ? 14 : 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.5,
-                  color: onPressed != null ? textColor : textColor.withOpacity(0.4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (tooltip != null) {
-      return Tooltip(message: tooltip!, child: button);
-    }
-    return button;
-  }
-}
-
-// ─── Painter para estrelas de fundo ──────────────────────────────────────────
-
-class _StarfieldPainter extends CustomPainter {
+class _WoodGrainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.15);
-    final stars = [
-      Offset(size.width * 0.1, size.height * 0.08),
-      Offset(size.width * 0.25, size.height * 0.15),
-      Offset(size.width * 0.6, size.height * 0.05),
-      Offset(size.width * 0.8, size.height * 0.12),
-      Offset(size.width * 0.45, size.height * 0.22),
-      Offset(size.width * 0.9, size.height * 0.3),
-      Offset(size.width * 0.05, size.height * 0.4),
-      Offset(size.width * 0.7, size.height * 0.55),
-      Offset(size.width * 0.15, size.height * 0.7),
-      Offset(size.width * 0.5, size.height * 0.85),
-      Offset(size.width * 0.85, size.height * 0.75),
-      Offset(size.width * 0.35, size.height * 0.95),
-    ];
-    for (final s in stars) {
-      canvas.drawCircle(s, 1.5, paint);
+    final paint = Paint()
+      ..color = const Color(0xFFBF8A30).withOpacity(0.03)
+      ..strokeWidth = 1;
+
+    // Veios horizontais sutis
+    for (double y = 0; y < size.height; y += 18) {
+      paint.color = const Color(0xFFBF8A30).withOpacity(0.02 + (y % 54 == 0 ? 0.02 : 0));
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 4), paint);
     }
 
-    // Círculos difusos decorativos
-    final glowPaint = Paint()
-      ..color = const Color(0xFFE8B84B).withOpacity(0.04)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60);
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.1), 120, glowPaint);
-    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.9), 100, glowPaint);
+    // Brilho central suave
+    final glow = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.3),
+        radius: 0.8,
+        colors: [
+          const Color(0xFFBF8A30).withOpacity(0.06),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), glow);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
