@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'bioma.dart';     
+import 'bioma_data.dart';
 
 class LocationService {
   // Função para verificar permissões e pegar a localização atual
@@ -40,17 +42,22 @@ class LocationService {
   final double campusLongitude = -47.0504;
   final double raioPermitidoEmMetros = 500.0; // Exemplo: 500 metros
 
-  bool isPlayerAtCampus(Position playerPosition) {
-    // Calcula a distância entre o jogador e o centro do Campus
-    double distanceInMeters = Geolocator.distanceBetween(
-      playerPosition.latitude,
-      playerPosition.longitude,
-      campusLatitude,
-      campusLongitude,
-    );
+  // Esta função retorna o Bioma onde o jogador está, precisa colocar classe bioma e variavel ambientesPuc
+  Bioma? verificarAmbienteAtual(Position playerPosition) {
+    // Usando a lista oficial da equipe agora: BiomaData.biomas
+    for (var bioma in BiomaData.biomas) {
+      double distanceInMeters = Geolocator.distanceBetween(
+        playerPosition.latitude,
+        playerPosition.longitude,
+        bioma.latitude, // Era bioma.lat
+        bioma.longitude, // Era bioma.lng
+      );
 
-    // Se a distância for menor que o raio, ele está no campus!
-    return distanceInMeters <= raioPermitidoEmMetros;
+      if (distanceInMeters <= bioma.radiusInMeters) { // Era bioma.raio
+        return bioma; 
+      }
+    }
+    return null; 
   }
 
   // Inicia o rastreamento contínuo do jogador

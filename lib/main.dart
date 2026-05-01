@@ -1,31 +1,24 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'telas.dart'; // Importa o arquivo onde criamos as telas
 
 void main() {
-  runApp(const OmnizonaApp());
+  runApp(const MyApp());
 }
 
-class OmnizonaApp extends StatelessWidget {
-  const OmnizonaApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Omnizona',
-      debugShowCheckedModeBanner: false,
+      title: 'Meu Jogo Flutter',
+      debugShowCheckedModeBanner: false, // Remove a faixa de "Debug"
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE8B84B),
-          brightness: Brightness.dark,
-        ),
+        primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (_) => const HomeScreen(),
-        // '/game': (_) => const GameScreen(), <- deixa comentado por enquanto
-        // seu colega vai criar a GameScreen
-      },
+      // Define a tela inicial do jogo
+      home: const TelaInicio(), 
     );
   }
 }
