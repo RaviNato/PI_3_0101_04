@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "180141803743",
+    "project_id": "omnizonaa",
+    "storage_bucket": "omnizonaa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180141803743:android:c8d5abaabcdfd59d99016a",
+        "android_client_info": {
+          "package_name": "com.example.pi_3_0101_04"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxma0N2_X4Rit2DWZmjXGCmUE708mljlU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

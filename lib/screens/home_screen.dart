@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'game_screen.dart';
 import '../character_screen.dart';
 
 /// HomeScreen — Tela inicial do Omnizona
