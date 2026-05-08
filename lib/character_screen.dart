@@ -4,9 +4,12 @@ import 'location_service.dart';
 import 'bioma.dart';     
 import 'bioma_data.dart';
 import 'npc_data.dart';
+import 'models/game_save.dart';
+import 'services/save_service.dart';
 
 class CharacterScreen extends StatefulWidget {
-  const CharacterScreen({super.key});
+  final GameSave initialSave; 
+  const CharacterScreen({super.key, required this.initialSave});
 
   @override
   State<CharacterScreen> createState() => _CharacterScreenState();
@@ -17,7 +20,8 @@ class _CharacterScreenState extends State<CharacterScreen> {
   final LocationService _locationService = LocationService();
   Position? _posicaoAtual;
   Bioma? _biomaAtual;
-  String _mensagemGps = "Buscando sinal das estrelas (GPS)...";
+  String _mensagemGps = "Buscando sinal (GPS)...";
+  late GameSave meuSave; // Esta variável vai controlar todo o progresso no banco
   
   // Controle de progressão do jogador (0 = Início, 1 = Passou do 1º bioma, etc.)
   int nivelProgresso = 0; 
@@ -25,6 +29,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   @override
   void initState() {
     super.initState();
+    meuSave = widget.initialSave; // Inicializa com o save que veio da tela inicial
     // Inicia a escuta do GPS assim que a tela abre
     _iniciarRastreamento();
   }
@@ -74,6 +79,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   }
 
   void _abrirDialogoNPC() {
+    if (_biomaAtual == null) return;
     // o molde confirma quais botões serão necessários para cada ambiente
     final dialogo = NpcData.dialogos[_biomaAtual!.id];
 
@@ -126,6 +132,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 // Se o jogador acertou e tem algo para desbloquear, chama a sua função de desbloqueio
                 if (escolha.isCorrect && escolha.conditionToUnlock != null) {
                   _tentarDesbloqueio(escolha.conditionToUnlock!);
+                  finalizarCharada(escolha.conditionToUnlock ?? "");
                 }
               },
               child: Text(escolha.text, style: const TextStyle(color: Colors.white)),
@@ -159,6 +166,48 @@ class _CharacterScreenState extends State<CharacterScreen> {
         }
       }
     });
+  }
+
+  void finalizarCharada(String condicao) async {
+    setState(() {
+      switch (condicao) {
+        case 'charada_ancia_respondida':
+          if (meuSave.flags['falou_com_ancia'] == true) return; // Evita reprocessar se já tiver sido feito
+          meuSave.flags['falou_com_ancia'] = true;
+          if (!meuSave.biomasAbertos.contains('bioma_02')) meuSave.biomasAbertos.add('bioma_02');  // Libera Geleira
+          break;
+
+        case 'charada_geleira_resolvida':
+          if (meuSave.flags['tem_remo'] == true) return; // Evita reprocessar se já tiver sido feito
+          meuSave.flags['tem_remo'] = true;
+          if (!meuSave.biomasAbertos.contains('bioma_03')) meuSave.biomasAbertos.add('bioma_03');  // Libera Geleira
+          break;
+
+        case 'conversa_pirata_concluida':
+          if (meuSave.flags['falou_com_pirata'] == true) return; // Evita reprocessar se já tiver sido feito
+          meuSave.flags['falou_com_pirata'] = true;
+          if (!meuSave.biomasAbertos.contains('bioma_04')) meuSave.biomasAbertos.add('bioma_04'); // Libera Deserto
+          break;
+
+        case 'charada_mumia_resolvida':
+          if (meuSave.flags['tem_reliquia_fogo'] == true) return; // Evita reprocessar se já tiver sido feito
+          meuSave.flags['tem_reliquia_fogo'] = true;
+          if (!meuSave.biomasAbertos.contains('bioma_05')) meuSave.biomasAbertos.add('bioma_05'); // Libera Vulcão
+          break;
+
+        case 'charada_vulcao_resolvida':
+          if (meuSave.flags['tem_chama_magica'] == true) return; // Evita reprocessar se já tiver sido feito
+          meuSave.flags['tem_chama_magica'] = true;
+          break;
+          
+        case 'torre_reascendida':
+          meuSave.flags['venceu_jogo'] = true;
+          break;
+      }
+    });
+
+    // Salva no Firebase imediatamente após a mudança
+    await SaveService().atualizarSave(meuSave);
   }
 
   @override

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../character_screen.dart';
+import '../services/save_service.dart';
+import '../models/game_save.dart';
 
 /// HomeScreen — Tela inicial do Omnizona
 /// Visual: pergaminho medieval, tons de marrom, madeira, rústico
@@ -338,11 +340,12 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Icons.play_arrow_rounded,
           primary: true,
           isSmall: isSmall,
-          onPressed: () {
+          onPressed: () async {
+            GameSave saveCarregado = await SaveService().carregarOuCriarSave();
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
-                pageBuilder: (_, a1, a2) => const CharacterScreen(),
+                pageBuilder: (_, a1, a2) => CharacterScreen(initialSave: saveCarregado),
                 transitionsBuilder: (_, anim, __, child) =>
                     FadeTransition(opacity: anim, child: child),
                 transitionDuration: const Duration(milliseconds: 800),

@@ -4,10 +4,28 @@ import 'bioma.dart';
 import 'bioma_data.dart';
 
 class LocationService {
+  // 1. Flag de desenvolvedor. Mude para 'false' quando for testar andando pelo campus.
+  static const bool isDevMode = false;
+
   // Função para verificar permissões e pegar a localização atual
   StreamSubscription<Position>? positionStream;
 
+  Position get _mockPosition => Position(
+    latitude: -22.834115, 
+    longitude: -47.052605,
+    timestamp: DateTime.now(),
+    accuracy: 5.0,
+    altitude: 0.0,
+    heading: 90.0,
+    speed: 1.0,
+    speedAccuracy: 0.0,
+    altitudeAccuracy: 0.0,
+    headingAccuracy: 0.0,
+  );
+
   Future<Position?> determinePosition() async {
+    if (isDevMode) return _mockPosition;
+  
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -37,6 +55,8 @@ class LocationService {
     return await Geolocator.getCurrentPosition();
   }
 
+
+
 // Coordenadas aproximadas do Campus I (Você precisará pegar a exata no Google Maps depois)
   final double campusLatitude = -22.8335; 
   final double campusLongitude = -47.0504;
@@ -62,6 +82,13 @@ class LocationService {
 
   // Inicia o rastreamento contínuo do jogador
   void startTracking(Function(Position) onLocationUpdate) {
+    if (isDevMode) {
+      // Simula o GPS atualizando a posição a cada 2 segundos no PC
+      Stream.periodic(const Duration(seconds: 2)).listen((_) {
+        onLocationUpdate(_mockPosition);
+      });
+      return;
+    }
     
     // 1. Calibrando a infraestrutura de geolocalização (Resolve a Etapa 5)
     final LocationSettings locationSettings = LocationSettings(
