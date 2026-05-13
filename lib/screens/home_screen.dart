@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import '../character_screen.dart';
+import 'character_screen.dart';
 import '../services/save_service.dart';
 import '../models/game_save.dart';
 
-/// HomeScreen — Tela inicial do Omnizona
-/// Visual: pergaminho medieval, tons de marrom, madeira, rústico
-/// Sem Firebase por enquanto (integração será feita depois)
-
+/// [RF06] O botão "JOGAR" carrega o save do Firebase antes de navegar,
+/// garantindo que a CharacterScreen sempre inicie com o estado persistido.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,15 +18,18 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<double> _fadeIn;
   late Animation<double> _slideUp;
 
-  // ── Paleta pergaminho/medieval ──────────────────────────────────────────
-  static const Color _bgDeep    = Color(0xFF1C1008); // marrom quase preto
-  static const Color _bgMid     = Color(0xFF2E1A0E); // marrom escuro
-  static const Color _parchment = Color(0xFFF2E0B6); // pergaminho claro
-  static const Color _parchmentDark = Color(0xFFD4B483); // pergaminho médio
-  static const Color _inkBrown  = Color(0xFF3D1F00); // marrom tinta
-  static const Color _goldWarm  = Color(0xFFBF8A30); // dourado envelhecido
-  static const Color _goldLight = Color(0xFFE8C060); // dourado claro
-  static const Color _redWax    = Color(0xFF7A1C1C); // vermelho lacre
+  // Indica que o carregamento do save está em andamento
+  bool _carregando = false;
+
+  // ── Paleta pergaminho/medieval
+  static const Color _bgDeep        = Color(0xFF1C1008);
+  static const Color _bgMid         = Color(0xFF2E1A0E);
+  static const Color _parchment     = Color(0xFFF2E0B6);
+  static const Color _parchmentDark = Color(0xFFD4B483);
+  static const Color _inkBrown      = Color(0xFF3D1F00);
+  static const Color _goldWarm      = Color(0xFFBF8A30);
+  static const Color _goldLight     = Color(0xFFE8C060);
+  static const Color _redWax        = Color(0xFF7A1C1C);
 
   @override
   void initState() {
@@ -56,19 +57,50 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  // [RF06] Carregamento do save e navegação
+  Future<void> _iniciarJogo(BuildContext context) async {
+    if (_carregando) return;
+    setState(() => _carregando = true);
+
+    try {
+      // Autentica anonimamente e carrega (ou cria) o documento do jogador.
+      final GameSave saveCarregado =
+          await SaveService().carregarOuCriarSave();
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, a1, a2) =>
+              CharacterScreen(initialSave: saveCarregado),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar o jogo: $e'),
+          backgroundColor: Colors.red.shade800,
+        ),
+      );
+      setState(() => _carregando = false);
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size    = MediaQuery.of(context).size;
     final isSmall = size.width < 380;
 
     return Scaffold(
       backgroundColor: _bgDeep,
       body: Stack(
         children: [
-          // Fundo texturizado
           _buildBackground(size),
-
-          // Conteúdo
           SafeArea(
             child: AnimatedBuilder(
               animation: _animController,
@@ -78,11 +110,11 @@ class _HomeScreenState extends State<HomeScreen>
                   offset: Offset(0, _slideUp.value),
                   child: SingleChildScrollView(
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: size.height - 48),
+                      constraints:
+                          BoxConstraints(minHeight: size.height - 48),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: isSmall ? 20 : 32,
-                        ),
+                            horizontal: isSmall ? 20 : 32),
                         child: Column(
                           children: [
                             SizedBox(height: size.height * 0.05),
@@ -114,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Fundo ────────────────────────────────────────────────────────────────
+  // ── Fundo
 
   Widget _buildBackground(Size size) {
     return Container(
@@ -135,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Ornamentos ───────────────────────────────────────────────────────────
+  // ── Ornamentos
 
   Widget _buildTopOrnament() {
     return Row(
@@ -143,11 +175,11 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         _ornamentLine(),
         const SizedBox(width: 12),
-        Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
+        const Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
         const SizedBox(width: 8),
-        Icon(Icons.shield, color: _goldWarm, size: 28),
+        const Icon(Icons.shield, color: _goldWarm, size: 28),
         const SizedBox(width: 8),
-        Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
+        const Icon(Icons.auto_awesome, color: _goldWarm, size: 22),
         const SizedBox(width: 12),
         _ornamentLine(),
       ],
@@ -158,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       width: 50,
       height: 1.5,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.transparent, _goldWarm, Colors.transparent],
         ),
@@ -214,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Título ───────────────────────────────────────────────────────────────
+  // ── Título
 
   Widget _buildTitle(bool isSmall) {
     return Column(
@@ -228,15 +260,18 @@ class _HomeScreenState extends State<HomeScreen>
             color: _parchment,
             shadows: [
               Shadow(color: _goldWarm.withOpacity(0.8), blurRadius: 12),
-              Shadow(color: _inkBrown, blurRadius: 2, offset: const Offset(2, 2)),
+              const Shadow(
+                  color: _inkBrown,
+                  blurRadius: 2,
+                  offset: Offset(2, 2)),
             ],
           ),
         ),
         const SizedBox(height: 4),
-        Text(
+        const Text(
           '— JOGO DE RPG —',
           style: TextStyle(
-            fontSize: isSmall ? 11 : 13,
+            fontSize: 13,
             letterSpacing: 5,
             color: _goldWarm,
             fontWeight: FontWeight.w500,
@@ -260,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Card de pergaminho com biomas ────────────────────────────────────────
+  // ── Card de pergaminho com biomas
 
   Widget _buildParchmentCard(bool isSmall) {
     const biomes = [
@@ -280,14 +315,11 @@ class _HomeScreenState extends State<HomeScreen>
         border: Border.all(color: _goldWarm.withOpacity(0.6), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
           BoxShadow(
-            color: _goldWarm.withOpacity(0.1),
-            blurRadius: 8,
-          ),
+              color: _goldWarm.withOpacity(0.1), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -306,13 +338,15 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: biomes.map((b) => _BiomeChip(
-              icon: b['icon'] as IconData,
-              label: b['label'] as String,
-              color: b['color'] as Color,
-              small: isSmall,
-              onDark: false,
-            )).toList(),
+            children: biomes
+                .map((b) => _BiomeChip(
+                      icon: b['icon'] as IconData,
+                      label: b['label'] as String,
+                      color: b['color'] as Color,
+                      small: isSmall,
+                      onDark: false,
+                    ))
+                .toList(),
           ),
           const SizedBox(height: 16),
           Text(
@@ -330,45 +364,34 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Botões ───────────────────────────────────────────────────────────────
+  // ── Botões
 
   Widget _buildButtons(BuildContext context, bool isSmall) {
     return Column(
       children: [
+        // [RF06] Botão JOGAR: async, carrega save, navega para CharacterScreen
         _MedievalButton(
-          label: 'JOGAR',
-          icon: Icons.play_arrow_rounded,
+          label: _carregando ? 'CARREGANDO...' : 'JOGAR',
+          icon: _carregando ? Icons.hourglass_top : Icons.play_arrow_rounded,
           primary: true,
           isSmall: isSmall,
-          onPressed: () async {
-            GameSave saveCarregado = await SaveService().carregarOuCriarSave();
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (_, a1, a2) => CharacterScreen(initialSave: saveCarregado),
-                transitionsBuilder: (_, anim, __, child) =>
-                    FadeTransition(opacity: anim, child: child),
-                transitionDuration: const Duration(milliseconds: 800),
-              ),
-            );
-          },
+          onPressed: _carregando ? null : () => _iniciarJogo(context),
         ),
-// ... restante do código ...
         const SizedBox(height: 14),
         _MedievalButton(
           label: 'CONTINUAR JOGO',
           icon: Icons.bookmark_rounded,
           primary: false,
           isSmall: isSmall,
-          onPressed: null, // habilitar após integração Firebase
-          tooltip: 'Disponível em breve',
+          onPressed: null, // Habilitado via botão JOGAR (carrega save automaticamente)
+          tooltip: 'Use "JOGAR" — o progresso é carregado automaticamente',
         ),
       ],
     );
   }
 }
 
-// ─── Botão medieval ───────────────────────────────────────────────────────────
+// ─── Botão medieval
 
 class _MedievalButton extends StatelessWidget {
   final String label;
@@ -414,14 +437,11 @@ class _MedievalButton extends StatelessWidget {
         boxShadow: enabled && primary
             ? [
                 BoxShadow(
-                  color: _redWax.withOpacity(0.5),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
+                    color: _redWax.withOpacity(0.5),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4)),
                 BoxShadow(
-                  color: _goldWarm.withOpacity(0.2),
-                  blurRadius: 6,
-                ),
+                    color: _goldWarm.withOpacity(0.2), blurRadius: 6),
               ]
             : null,
       ),
@@ -464,7 +484,7 @@ class _MedievalButton extends StatelessWidget {
   }
 }
 
-// ─── Chip de bioma ────────────────────────────────────────────────────────────
+// ─── Chip de bioma
 
 class _BiomeChip extends StatelessWidget {
   final IconData icon;
@@ -511,7 +531,7 @@ class _BiomeChip extends StatelessWidget {
   }
 }
 
-// ─── Painter de textura de madeira no fundo ───────────────────────────────────
+// ─── Painter de textura de madeira no fundo
 
 class _WoodGrainPainter extends CustomPainter {
   @override
@@ -520,23 +540,24 @@ class _WoodGrainPainter extends CustomPainter {
       ..color = const Color(0xFFBF8A30).withOpacity(0.03)
       ..strokeWidth = 1;
 
-    // Veios horizontais sutis
     for (double y = 0; y < size.height; y += 18) {
-      paint.color = const Color(0xFFBF8A30).withOpacity(0.02 + (y % 54 == 0 ? 0.02 : 0));
+      paint.color = const Color(0xFFBF8A30)
+          .withOpacity(0.02 + (y % 54 == 0 ? 0.02 : 0));
       canvas.drawLine(Offset(0, y), Offset(size.width, y + 4), paint);
     }
 
-    // Brilho central suave
-    final glow = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0, -0.3),
-        radius: 0.8,
-        colors: [
-          const Color(0xFFBF8A30).withOpacity(0.06),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), glow);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0, -0.3),
+          radius: 0.8,
+          colors: [
+            const Color(0xFFBF8A30).withOpacity(0.06),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
   }
 
   @override
