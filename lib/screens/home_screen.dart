@@ -3,7 +3,7 @@ import 'character_screen.dart';
 import '../services/save_service.dart';
 import '../models/game_save.dart';
 
-/// [RF06] O botão "JOGAR" carrega o save do Firebase antes de navegar,
+/// O botão "JOGAR" carrega o save do Firebase antes de navegar,
 /// garantindo que a CharacterScreen sempre inicie com o estado persistido.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen>
   // Indica que o carregamento do save está em andamento
   bool _carregando = false;
 
-  // ── Paleta pergaminho/medieval
   static const Color _bgDeep        = Color(0xFF1C1008);
   static const Color _bgMid         = Color(0xFF2E1A0E);
   static const Color _parchment     = Color(0xFFF2E0B6);
@@ -57,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  // [RF06] Carregamento do save e navegação
+  // Carregamento do save e navegação
   Future<void> _iniciarJogo(BuildContext context) async {
     if (_carregando) return;
     setState(() => _carregando = true);
@@ -369,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildButtons(BuildContext context, bool isSmall) {
     return Column(
       children: [
-        // [RF06] Botão JOGAR: async, carrega save, navega para CharacterScreen
+        // Botão JOGAR: async, carrega save, navega para CharacterScreen
         _MedievalButton(
           label: _carregando ? 'CARREGANDO...' : 'JOGAR',
           icon: _carregando ? Icons.hourglass_top : Icons.play_arrow_rounded,
@@ -530,8 +529,6 @@ class _BiomeChip extends StatelessWidget {
     );
   }
 }
-
-// ─── Painter de textura de madeira no fundo
 
 class _WoodGrainPainter extends CustomPainter {
   @override

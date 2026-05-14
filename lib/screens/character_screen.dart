@@ -9,7 +9,7 @@ import '../services/save_service.dart';
 import '../widgets/jorge_painter.dart';
 
 class CharacterScreen extends StatefulWidget {
-  /// [RF06] Save recebido da HomeScreen após carregamento no Firebase.
+  /// Save recebido da HomeScreen após carregamento no Firebase.
   final GameSave initialSave;
 
   const CharacterScreen({super.key, required this.initialSave});
@@ -20,38 +20,37 @@ class CharacterScreen extends StatefulWidget {
 
 class _CharacterScreenState extends State<CharacterScreen>
     with TickerProviderStateMixin {
-  // ── Serviços ─────────────────────────────────────────────────────────────
+  // ── Serviços
   final LocationService _locationService = LocationService();
   final SaveService _saveService = SaveService();
 
-  // ── Estado de localização ─────────────────────────────────────────────────
+  // ── Estado de localização
   Position? _posicaoAtual;
   Bioma? _biomaAtual;
   String _mensagemGps = 'Buscando sinal (GPS)...';
 
-  // ── Estado de progresso ───────────────────────────────────────────────────
+  // ── Estado de progresso
   late GameSave meuSave;
   int nivelProgresso = 0;
 
-  // ── Controle de salvamento ────────────────────────────────────────────────
+  // ── Controle de salvamento
   bool _salvando = false;
 
-  // ── [NOVO] Animação idle do Jorge ─────────────────────────────────────────
+  // ─Animação idle do Jorge
   late AnimationController _idleController;
   late Animation<double> _idleBob;
 
-  // ─────────────────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
 
-    // [RF06] Inicializa o estado local com o save carregado do Firebase.
+    // Inicializa o estado local com o save carregado do Firebase.
     meuSave = widget.initialSave;
     nivelProgresso =
         (meuSave.biomasAbertos.length - 1).clamp(0, BiomaData.biomas.length - 1);
     _sincronizarBiomasComSave();
 
-    // [NOVO] Animação de balanço do personagem (idle)
+    // Animação de balanço do personagem (idle)
     _idleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -79,10 +78,7 @@ class _CharacterScreenState extends State<CharacterScreen>
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // GPS
-  // ─────────────────────────────────────────────────────────────────────────
-
   void _iniciarRastreamento() async {
     try {
       await _locationService.determinePosition();
@@ -118,9 +114,7 @@ class _CharacterScreenState extends State<CharacterScreen>
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // [RF06] Persistência
-  // ─────────────────────────────────────────────────────────────────────────
+  // Persistência
 
   Future<void> _salvarProgresso({bool mostrarSnackbar = true}) async {
     if (_salvando) return;
@@ -160,10 +154,7 @@ class _CharacterScreenState extends State<CharacterScreen>
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Diálogo NPC
-  // ─────────────────────────────────────────────────────────────────────────
-
   void _abrirDialogoNPC() {
     if (_biomaAtual == null) return;
 
@@ -238,10 +229,7 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Desbloqueio
-  // ─────────────────────────────────────────────────────────────────────────
-
   void _tentarDesbloqueio(String condicaoAtendida) {
     setState(() {
       for (final bioma in BiomaData.biomas) {
@@ -310,10 +298,7 @@ class _CharacterScreenState extends State<CharacterScreen>
     await _saveService.atualizarSave(meuSave);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Build
-  // ─────────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (_biomaAtual == null) {
@@ -343,12 +328,10 @@ class _CharacterScreenState extends State<CharacterScreen>
         elevation: 0,
         centerTitle: true,
 
-        // ── [FIX] Botão de save com fundo visível contra qualquer background ──
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Container(
-              // Fundo escuro semitransparente garante contraste sobre qualquer bioma
               decoration: BoxDecoration(
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(8),
@@ -403,7 +386,7 @@ class _CharacterScreenState extends State<CharacterScreen>
             ),
           ),
 
-          // 3. [NOVO] Jorge animado no centro da tela
+          // 3. Jorge animado no centro da tela
           _buildJorge(size),
 
           // 4. Interface (header + HUD)
@@ -424,17 +407,11 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // [NOVO] Widget do Jorge com animação idle
-  // ─────────────────────────────────────────────────────────────────────────
-
   Widget _buildJorge(Size size) {
-    // Tamanho do personagem proporcional à altura da tela
     final double charWidth  = size.width * 0.18;
     final double charHeight = charWidth * 1.6;
 
     return Positioned(
-      // Centralizado horizontalmente, posicionado a ~30% do fundo
       left: size.width / 2 - charWidth / 2,
       bottom: size.height * 0.28,
       child: AnimatedBuilder(
@@ -452,10 +429,6 @@ class _CharacterScreenState extends State<CharacterScreen>
       ),
     );
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Widgets auxiliares
-  // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildTelaFora() {
     return Scaffold(
@@ -615,10 +588,6 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// StatBar
-// ─────────────────────────────────────────────────────────────────────────────
 
 class StatBar extends StatelessWidget {
   final String label;
