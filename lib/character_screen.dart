@@ -6,6 +6,7 @@ import 'bioma_data.dart';
 import 'npc_data.dart';
 import 'models/game_save.dart';
 import 'services/save_service.dart';
+import 'dart:math' as math;
 
 class CharacterScreen extends StatefulWidget {
   final GameSave initialSave; 
@@ -212,6 +213,38 @@ class _CharacterScreenState extends State<CharacterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- LÓGICA DA SETINHA DE NAVEGAÇÃO ---
+    // Define o bioma atual baseado no nível de progresso do jogador
+    Bioma? biomaAlvo;
+    if (nivelProgresso < BiomaData.biomas.length) {
+      biomaAlvo = BiomaData.biomas[nivelProgresso];
+    }
+
+    double distanciaAlvo = 0;
+    double anguloSetinha = 0;
+
+    if (_posicaoAtual != null && biomaAlvo != null) {
+      // 1. Calcula a distância em metros até o bioma alvo
+      distanciaAlvo = Geolocator.distanceBetween(
+        _posicaoAtual!.latitude,
+        _posicaoAtual!.longitude,
+        biomaAlvo.latitude,
+        biomaAlvo.longitude,
+      );
+
+      // 2. Calcula o azimute (direção absoluta em graus do alvo em relação ao Norte)
+      double bearing = Geolocator.bearingBetween(
+        _posicaoAtual!.latitude,
+        _posicaoAtual!.longitude,
+        biomaAlvo.latitude,
+        biomaAlvo.longitude,
+      );
+
+      // 3. Subtrai a direção do celular (heading) e converte para radianos
+      double heading = _posicaoAtual!.heading;
+      anguloSetinha = (bearing - heading) * (math.pi / 180);
+    }
+
     if (_biomaAtual == null) {
       return Scaffold(
         backgroundColor: Colors.grey.shade900,
@@ -221,19 +254,49 @@ class _CharacterScreenState extends State<CharacterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.location_off, size: 100, color: Colors.white24),
-                const SizedBox(height: 24),
-                Text(
-                  _mensagemGps,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 32),
+                if (biomaAlvo != null) ...[
+                  Text(
+                    "Siga para: ${biomaAlvo.name}",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.amber, 
+                      fontSize: 22, 
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)]
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // A SETA GIGANTE QUE GIRA
+                  Transform.rotate(
+                    angle: anguloSetinha,
+                    child: const Icon(Icons.navigation, size: 120, color: Colors.blueAccent),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "${distanciaAlvo.toInt()} metros",
+                    style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Caminhe na direção da seta para entrar no bioma",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
+                ] else ...[
+                  const Icon(Icons.location_off, size: 100, color: Colors.white24),
+                  const SizedBox(height: 24),
+                  Text(
+                    _mensagemGps,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                ],
+                const SizedBox(height: 40),
+                // Pequeno log para depuração
                 if (_posicaoAtual != null)
                   Text(
-                    "Lat: ${_posicaoAtual!.latitude.toStringAsFixed(4)}\nLng: ${_posicaoAtual!.longitude.toStringAsFixed(4)}",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.amber, fontStyle: FontStyle.italic),
+                    "GPS: ${_posicaoAtual!.latitude.toStringAsFixed(4)}, ${_posicaoAtual!.longitude.toStringAsFixed(4)}",
+                    style: const TextStyle(color: Colors.white24, fontSize: 10),
                   ),
               ],
             ),
@@ -268,7 +331,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. O Fundo do Bioma (Sua imagem png)
+          // 1. O Fundo do Bioma
           Image.asset(
             _biomaAtual!.assetImagePath,
             fit: BoxFit.cover, 
@@ -364,22 +427,35 @@ class _CharacterScreenState extends State<CharacterScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
+                          // Setinha de Missão em Tempo Real
                           Expanded(
                             flex: 1,
                             child: Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.explore, color: Colors.amber, size: 28),
+                                  Text(
+                                    biomaAlvo?.name ?? 'Alvo',
+                                    style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text('${_posicaoAtual!.heading.toStringAsFixed(0)}°', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  // Seta dinâmica menorzinha
+                                  Transform.rotate(
+                                    angle: anguloSetinha,
+                                    child: const Icon(Icons.navigation, color: Colors.white, size: 28),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${distanciaAlvo.toInt()}m',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -396,8 +472,10 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   ),
                 ],
               ),
+             ],
             ),
           ),
+         ),
         ],
       ),
     );
