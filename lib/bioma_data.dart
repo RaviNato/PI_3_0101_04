@@ -22,7 +22,7 @@ class BiomaData {
           longitude: -47.052605,
           radiusInMeters: 50.0,
           isUnlocked: true,     // Bioma inicial — sempre aberto
-          assetImagePath: 'assets/images/floresta.png',
+          assetImagePath: 'assets/images/floresta.jpg',
           unlockCondition: 'start',
         ),
 
@@ -33,7 +33,7 @@ class BiomaData {
           longitude: -47.052738,  
           radiusInMeters: 50.0,
           isUnlocked: false,
-          assetImagePath: 'assets/images/geleira.png',
+          assetImagePath: 'assets/images/geleira.jpg',
           unlockCondition: 'charada_ancia_respondida',
         ),
 
@@ -44,7 +44,7 @@ class BiomaData {
           longitude: -47.052013,
           radiusInMeters: 50.0,
           isUnlocked: false,
-          assetImagePath: 'assets/images/oceano.png',
+          assetImagePath: 'assets/images/oceano.jpg',
           unlockCondition: 'geleira_concluida',
         ),
 
@@ -55,7 +55,7 @@ class BiomaData {
           longitude: -47.050558,  
           radiusInMeters: 50.0,
           isUnlocked: false,
-          assetImagePath: 'assets/images/deserto.png',
+          assetImagePath: 'assets/images/deserto.jpg',
           unlockCondition: 'dica_pirata_recebida',
         ),
 
@@ -66,7 +66,7 @@ class BiomaData {
           longitude: -47.050741,  
           radiusInMeters: 50.0,
           isUnlocked: false,
-          assetImagePath: 'assets/images/vulcao.png',
+          assetImagePath: 'assets/images/vulcao.jpg',
           unlockCondition: 'reliquia_coletada',
         ),
       ];

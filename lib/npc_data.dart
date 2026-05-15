@@ -49,8 +49,29 @@ class NpcData {
       ],
     ),
 
-    // --- BIOMA 02: GELEIRA  ---
-    //Próximos ajustes: cores de letras, ver como vai ficar a questão do mapa ou imagem e testar
-    //ver se já preciso colocar todos os diálogos e NPCs
+    'bioma_02': NpcDialog(
+      npcName: 'Guardião do Gelo',
+      message: "Texto da charada da Geleira aqui...",
+      choices: [
+        DialogChoice(text: 'Resposta Certa', feedback: 'Muito bem!', isCorrect: true, conditionToUnlock: 'gelo_desbloqueado'),
+        DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
+      ],
+    ),
+
+    // Adicione bioma_03 (Oceano) e bioma_04 (Deserto) seguindo o mesmo padrão...
+
+    'bioma_05': NpcDialog(
+      npcName: 'Ignis, o Espírito do Fogo',
+      message: "Você chegou ao coração do Vulcão. Resolva o último enigma para obter a Chama: 'Sou o que resta quando o fogo se apaga, mas no escuro, sou o que guia os perdidos.'",
+      choices: [
+        DialogChoice(
+          text: 'A Chama Mágica',
+          feedback: 'Ignis: Você provou seu valor! A Chama é sua.',
+          isCorrect: true,
+          conditionToUnlock: 'chama_obtida',
+        ),
+        DialogChoice(text: 'Cinzas', feedback: 'Quase, mas não.', isCorrect: false),
+      ],
+    ),
   };
 }
