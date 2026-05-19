@@ -253,35 +253,36 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
   }
 
-  void finalizarCharada(String condicao) async {
+void finalizarCharada(String condicao) async {
     setState(() {
       switch (condicao) {
-        case 'charada_ancia_respondida':
+        case 'charada_ancia_respondida': // Abre a Geleira
           if (meuSave.flags['falou_com_ancia'] == true) return;
           meuSave.flags['falou_com_ancia'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_02')) meuSave.biomasAbertos.add('bioma_02');
           break;
-        case 'charada_geleira_resolvida':
+          
+        case 'geleira_concluida': // Abre o Oceano (ESTA CHAVE ESTAVA ERRADA ANTES)
           if (meuSave.flags['tem_remo'] == true) return;
           meuSave.flags['tem_remo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_03')) meuSave.biomasAbertos.add('bioma_03');
           break;
-        case 'conversa_pirata_concluida':
+          
+        case 'dica_pirata_recebida': // Abre o Deserto (ESTA CHAVE ESTAVA ERRADA ANTES)
           if (meuSave.flags['falou_com_pirata'] == true) return;
           meuSave.flags['falou_com_pirata'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_04')) meuSave.biomasAbertos.add('bioma_04');
           break;
-        case 'charada_mumia_resolvida':
+          
+        case 'reliquia_coletada': // Abre o Vulcão (ESTA CHAVE ESTAVA ERRADA ANTES)
           if (meuSave.flags['tem_reliquia_fogo'] == true) return;
           meuSave.flags['tem_reliquia_fogo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_05')) meuSave.biomasAbertos.add('bioma_05');
           break;
-        case 'charada_vulcao_resolvida':
+          
+        case 'chama_obtida': // Aciona o final do jogo
           if (meuSave.flags['tem_chama_magica'] == true) return;
           meuSave.flags['tem_chama_magica'] = true;
-          break;
-        case 'torre_reascendida':
-          meuSave.flags['venceu_jogo'] = true;
           break;
       }
     });

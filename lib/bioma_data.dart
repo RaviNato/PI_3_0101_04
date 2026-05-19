@@ -13,7 +13,7 @@ import 'bioma.dart';
 class BiomaData {
   BiomaData._(); // previne instanciação acidental
 
-  static List<Bioma> get biomas => [
+  static final List<Bioma> biomas = [
    
         Bioma(
           id: 'bioma_01',

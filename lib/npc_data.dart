@@ -2,7 +2,7 @@
 class DialogChoice {
   final String text; // Texto do botão 
   final String feedback; // Resposta do NPC
-  final bool isCorrect; // Se a resposta avança o jogo ou nãõ
+  final bool isCorrect; // Se a resposta avança o jogo ou não
   final String? conditionToUnlock; // liberação para próxima etapa
 
   DialogChoice({
@@ -29,7 +29,8 @@ class NpcData {
   // Um "Dicionário" onde a chave é o ID do bioma e o valor é o diálogo
   static Map<String, NpcDialog> dialogos = {
     
-    // --- BIOMA 01: FLORESTA (Sua responsabilidade) ---
+    // --- BIOMA 1: FLORESTA ---
+    // A Floresta dá a chave para abrir a GELEIRA
     'bioma_01': NpcDialog(
       npcName: 'Anciã do Vilarejo',
       message: "Jovem, precisamos de sua ajuda para proteger nosso vilarejo. Nesses últimos dias, vivemos atormentados com os monstros da floresta...\n\n"
@@ -39,27 +40,62 @@ class NpcData {
           text: 'Região ártica',
           feedback: 'Anciã: Excelente!',
           isCorrect: true,
-          conditionToUnlock: 'charada_ancia_respondida',
+          conditionToUnlock: 'charada_ancia_respondida', // Abre a Geleira
         ),
-        DialogChoice(
-          text: 'Deserto',
-          feedback: 'Anciã: Resposta incorreta jovem, quer tentar novamente?',
-          isCorrect: false,
-        ),
+        DialogChoice(text: 'Deserto', feedback: 'Anciã: Resposta incorreta jovem, quer tentar novamente?', isCorrect: false),
       ],
     ),
 
+    // --- BIOMA 2: GELEIRA ---
+    // A Geleira dá a chave para abrir o OCEANO
     'bioma_02': NpcDialog(
       npcName: 'Guardião do Gelo',
       message: "Texto da charada da Geleira aqui...",
       choices: [
-        DialogChoice(text: 'Resposta Certa', feedback: 'Muito bem!', isCorrect: true, conditionToUnlock: 'gelo_desbloqueado'),
+        DialogChoice(
+          text: 'Resposta Certa', 
+          feedback: 'Muito bem!', 
+          isCorrect: true, 
+          conditionToUnlock: 'geleira_concluida', // Abre o Oceano
+        ),
         DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
       ],
     ),
 
-    // Adicione bioma_03 (Oceano) e bioma_04 (Deserto) seguindo o mesmo padrão...
+    // --- BIOMA 3: OCEANO ---
+    // O Oceano dá a chave para abrir o DESERTO
+    'bioma_03': NpcDialog(
+      npcName: 'Pirata dos Sete Mares',
+      message: "Texto da charada do Oceano aqui...",
+      choices: [
+        DialogChoice(
+          text: 'Resposta Certa', 
+          feedback: 'Muito bem!', 
+          isCorrect: true, 
+          conditionToUnlock: 'dica_pirata_recebida', // Abre o Deserto
+        ),
+        DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
+      ],
+    ),
 
+    // --- BIOMA 4: DESERTO ---
+    // O Deserto dá a chave para abrir o VULCÃO
+    'bioma_04': NpcDialog(
+      npcName: 'Múmia Anciã',
+      message: "Texto da charada do Deserto aqui...",
+      choices: [
+        DialogChoice(
+          text: 'Resposta Certa', 
+          feedback: 'Muito bem!', 
+          isCorrect: true, 
+          conditionToUnlock: 'reliquia_coletada', // Abre o Vulcão
+        ),
+        DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
+      ],
+    ),
+
+    // --- BIOMA 5: VULCÃO ---
+    // O Vulcão encerra a jornada
     'bioma_05': NpcDialog(
       npcName: 'Ignis, o Espírito do Fogo',
       message: "Você chegou ao coração do Vulcão. Resolva o último enigma para obter a Chama: 'Sou o que resta quando o fogo se apaga, mas no escuro, sou o que guia os perdidos.'",
@@ -68,7 +104,7 @@ class NpcData {
           text: 'A Chama Mágica',
           feedback: 'Ignis: Você provou seu valor! A Chama é sua.',
           isCorrect: true,
-          conditionToUnlock: 'chama_obtida',
+          conditionToUnlock: 'chama_obtida', // Aciona o final do jogo
         ),
         DialogChoice(text: 'Cinzas', feedback: 'Quase, mas não.', isCorrect: false),
       ],
