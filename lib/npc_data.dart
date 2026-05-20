@@ -37,12 +37,14 @@ class NpcData {
                "Primeiro, você deverá resolver uma charada: 'Não é deserto de areia, mas também é vazio e extremo. Durante meses só noite ou só dia, e o frio domina o terreno.' Onde é esse lugar?",
       choices: [
         DialogChoice(
+          text: 'Região subártica', feedback: 'Anciã: Resposta incorreta, jovem, quer tentar novamente?', isCorrect: false
+        ),
+        DialogChoice(
           text: 'Região ártica',
           feedback: 'Anciã: Excelente!',
           isCorrect: true,
           conditionToUnlock: 'charada_ancia_respondida', // Abre a Geleira
-        ),
-        DialogChoice(text: 'Deserto', feedback: 'Anciã: Resposta incorreta jovem, quer tentar novamente?', isCorrect: false),
+          ),
       ],
     ),
 

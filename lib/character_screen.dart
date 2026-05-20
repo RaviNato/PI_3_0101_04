@@ -6,7 +6,7 @@ import 'bioma_data.dart';
 import 'npc_data.dart';
 import 'models/game_save.dart';
 import 'services/save_service.dart';
-import 'screens/home_screen.dart'; // Importação para voltar à Home
+import 'screens/home_screen.dart'; // Usado para voltar à Home
 import 'dart:math' as math;
 
 class CharacterScreen extends StatefulWidget {
@@ -23,6 +23,7 @@ class _CharacterScreenState extends State<CharacterScreen>
   
   final LocationService _locationService = LocationService();
   final SaveService _saveService = SaveService();
+  bool _exibirAnimacaoChama = false;
 
   Position? _posicaoAtual;
   Bioma? _biomaAtual;
@@ -31,6 +32,7 @@ class _CharacterScreenState extends State<CharacterScreen>
   late GameSave meuSave;
   int nivelProgresso = 0;
   bool _salvando = false;
+  bool _chamaColocadaNaTorre = false; 
 
   late AnimationController _idleController;
   late Animation<double> _idleBob;
@@ -205,18 +207,20 @@ class _CharacterScreenState extends State<CharacterScreen>
 
   void _tentarDesbloqueio(String condicaoAtendida) {
     setState(() {
+      if (condicaoAtendida == 'chama_obtida') {
+        nivelProgresso = 5;
+        _exibirAnimacaoChama = true; // Ativa o ícone de chama
+        return;
+      }
+
+      // --- Lógica normal para os biomas (1 ao 4) ---
       for (var bioma in BiomaData.biomas) {
         if (!bioma.isUnlocked) {
           if (bioma.unlockBiome(condicaoAtendida)) {
             nivelProgresso++; 
-            
-            if (nivelProgresso == 5) {
-              _mostrarDialogoFinal();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Novo caminho revelado: ${bioma.name}"), backgroundColor: Colors.green.shade700),
-              );
-            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Novo caminho revelado: ${bioma.name}"), backgroundColor: Colors.green.shade700),
+            );
           }
           break; 
         }
@@ -262,19 +266,19 @@ void finalizarCharada(String condicao) async {
           if (!meuSave.biomasAbertos.contains('bioma_02')) meuSave.biomasAbertos.add('bioma_02');
           break;
           
-        case 'geleira_concluida': // Abre o Oceano (ESTA CHAVE ESTAVA ERRADA ANTES)
+        case 'geleira_concluida': // Abre o Oceano
           if (meuSave.flags['tem_remo'] == true) return;
           meuSave.flags['tem_remo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_03')) meuSave.biomasAbertos.add('bioma_03');
           break;
           
-        case 'dica_pirata_recebida': // Abre o Deserto (ESTA CHAVE ESTAVA ERRADA ANTES)
+        case 'dica_pirata_recebida': // Abre o Deserto 
           if (meuSave.flags['falou_com_pirata'] == true) return;
           meuSave.flags['falou_com_pirata'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_04')) meuSave.biomasAbertos.add('bioma_04');
           break;
           
-        case 'reliquia_coletada': // Abre o Vulcão (ESTA CHAVE ESTAVA ERRADA ANTES)
+        case 'reliquia_coletada': // Abre o Vulcão 
           if (meuSave.flags['tem_reliquia_fogo'] == true) return;
           meuSave.flags['tem_reliquia_fogo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_05')) meuSave.biomasAbertos.add('bioma_05');
@@ -292,7 +296,7 @@ void finalizarCharada(String condicao) async {
 
   // --- NOVA FUNÇÃO DE VOLTAR E SALVAR ---
   void _voltarParaHome() {
-    // Tenta salvar o jogo rapidamente em background antes de voltar
+    // Salva o progresso atual antes de voltar
     _salvarProgresso(mostrarSnackbar: false);
     
     Navigator.pushReplacement(
@@ -316,7 +320,7 @@ void finalizarCharada(String condicao) async {
       nomeDestino = biomaAlvo.name;
     } else if (nivelProgresso >= BiomaData.biomas.length) {
       biomaAlvo = BiomaData.biomas[0]; 
-      nomeDestino = "Floresta (Retorno)";
+      nomeDestino = "Retorno a Floresta";
     }
 
     double distanciaAlvo = 0;
@@ -354,6 +358,7 @@ void finalizarCharada(String condicao) async {
             const SizedBox(width: 8),
           ],
         ),
+        // Setinha com distância + Nome do próximo bioma
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -385,8 +390,9 @@ void finalizarCharada(String condicao) async {
     }
 
     String imagemFundo = _biomaAtual!.assetImagePath;
-    if (_biomaAtual!.id == 'bioma_01' && nivelProgresso >= 5) {
-      imagemFundo = 'assets/images/floresta_revitalizada.png'; 
+    // A imagem só muda se a chave for ligada pelo botão
+    if (_biomaAtual!.id == 'bioma_01' && _chamaColocadaNaTorre) {
+      imagemFundo = 'assets/images/floresta_revitalizada.jpg'; 
     }
 
     int totalBiomas = BiomaData.biomas.length;
@@ -419,6 +425,7 @@ void finalizarCharada(String condicao) async {
           ),
           Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87], stops: [0.4, 1.0]))),
           
+          // Wigdets de Nome e Nível do jogador
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -471,6 +478,7 @@ void finalizarCharada(String condicao) async {
                     ],
                   ),
 
+                  // Barra de progresso
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -502,6 +510,7 @@ void finalizarCharada(String condicao) async {
                       ),
                       const SizedBox(height: 10),
                       
+                      // Finalização do jogo - Coloca a Chama Mágica na torre
                       SizedBox(
                         height: 45,
                         child: (nivelProgresso >= 5 && _biomaAtual!.id == 'bioma_01')
@@ -513,12 +522,42 @@ void finalizarCharada(String condicao) async {
                                 ),
                                 icon: const Icon(Icons.auto_awesome),
                                 label: const Text("Colocar chama mágica na torre", style: TextStyle(fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => const AlertDialog(title: Text("VITÓRIA!"), content: Text("A Floresta foi salva!")),
-                                  );
-                                },
+
+                                onPressed: () async {
+                                // Muda a imagem de fundo para a revitalizada
+                                setState(() {
+                                  _chamaColocadaNaTorre = true;
+                                });
+
+                                // Dá um pequeno delay para o jogador ver a floresta mudando
+                                await Future.delayed(const Duration(milliseconds: 600));
+
+                                // Mostra o pop-up de vitória
+                                if (!context.mounted) return;
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.brown.shade900,
+                                    title: const Text("MISSÃO CUMPRIDA!", style: TextStyle(color: Colors.amber)),
+                                    content: const Text(
+                                      "Uma onda de luz se espalha! O Vilarejo e a Floresta foram salvos dos monstros. A paz finalmente retornou!",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    actions: [
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                        onPressed: () {
+                                          // Marca a vitória no Firebase e chama a função de navegação
+                                          setState(() => meuSave.flags['venceu_jogo'] = true);
+                                          _voltarParaHome(); 
+                                        },
+                                        child: const Text("FINALIZAR JORNADA", style: TextStyle(color: Colors.white)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                               )
                             : ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
@@ -537,6 +576,49 @@ void finalizarCharada(String condicao) async {
               ),
             ),
           ),
+          // Aparecimento da chama mágica para coleta
+          if (_exibirAnimacaoChama)
+            Container(
+              color: Colors.black87, // Escurece o fundo para dar destaque
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Ícone da Chama com Brilho
+                    const Icon(
+                      Icons.local_fire_department,
+                      color: Colors.orangeAccent,
+                      size: 150,
+                      shadows: [
+                        Shadow(blurRadius: 50, color: Colors.red),
+                        Shadow(blurRadius: 100, color: Colors.orange),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    const Text(
+                      "A CHAMA MÁGICA REVELADA!",
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                    ),
+                    const SizedBox(height: 40),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber.shade800,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _exibirAnimacaoChama = false; // Esconde a chama
+                          meuSave.flags['chama_coletada'] = true; // Registra no save
+                        });
+                        _salvarProgresso(mostrarSnackbar: false);
+                        _mostrarDialogoFinal(); // Chama o diálogo de voltar para a floresta
+                      },
+                      child: const Text("COLETAR CHAMA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
