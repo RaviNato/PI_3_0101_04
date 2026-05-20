@@ -5,14 +5,14 @@ import 'bioma_data.dart';
 
 class LocationService {
   // 1. Flag de desenvolvedor. Mude para 'false' quando for testar andando pelo campus.
-  static const bool isDevMode = false;
+  static const bool isDevMode = true;
 
   // Função para verificar permissões e pegar a localização atual
   StreamSubscription<Position>? positionStream;
 
   Position get _mockPosition => Position(
-    latitude: -22.834115, 
-    longitude: -47.052605,
+    latitude: -22.833065, 
+    longitude: -47.052013,
     timestamp: DateTime.now(),
     accuracy: 5.0,
     altitude: 0.0,
@@ -21,6 +21,28 @@ class LocationService {
     speedAccuracy: 0.0,
     altitudeAccuracy: 0.0,
     headingAccuracy: 0.0,
+
+    /*
+    Floresta:
+    latitude: -22.834115   // Entorno do Prédio H15 — PUC-Campinas
+    longitude: -47.052605
+
+    Geleira:
+    latitude: -22.832475   // Entorno do CT — PUC-Campinas
+    longitude: -47.052738  
+
+    Oceano:
+    latitude: -22.833065   // Entorno da Praça de Alimentação — PUC-Campinas
+    longitude: -47.052013
+
+    Deserto:
+    latitude: -22.833992   // Entorno do Administrativo I — PUC-Campinas
+    longitude: -47.050558  
+
+    Vulcão:
+    latitude: -22.831766   // Entorno do Administrativo II — PUC-Campinas
+    longitude: -47.050741  
+    */
   );
 
   Future<Position?> determinePosition() async {

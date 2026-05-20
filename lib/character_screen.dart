@@ -34,6 +34,18 @@ class _CharacterScreenState extends State<CharacterScreen>
   bool _salvando = false;
   bool _chamaColocadaNaTorre = false; 
 
+  // --- VARIÁVEIS DO SISTEMA LIGHT NOVEL PAGINADO ---
+  bool _exibindoDialogo = false;
+  NpcDialog? _dialogoAtualObjeto;
+  
+  List<String> _paginasDialogo = [];
+  int _paginaAtualDialogo = 0;
+  
+  bool _mostrarOpcoes = false;
+  bool _aguardandoFeedback = false;
+  bool _respostaCorretaSelecionada = false;
+  String? _condicaoDesbloqueioPendente;
+
   late AnimationController _idleController;
   late Animation<double> _idleBob;
 
@@ -147,10 +159,67 @@ class _CharacterScreenState extends State<CharacterScreen>
     }
   }
 
+  // --- CONTROLE DE CONCLUSÃO DE DIÁLOGOS ---
+  bool _dialogoJaConcluido(String biomaId) {
+    switch (biomaId) {
+      case 'bioma_01':
+        return meuSave.flags['falou_com_ancia'] == true;
+      case 'bioma_02':
+        return meuSave.flags['tem_remo'] == true;
+      case 'bioma_03':
+        return meuSave.flags['falou_com_pirata'] == true;
+      case 'bioma_04':
+        return meuSave.flags['tem_reliquia_fogo'] == true;
+      case 'bioma_05':
+        return meuSave.flags['tem_chama_magica'] == true;
+      default:
+        return false;
+    }
+  }
+
+  // --- MOTOR DE PAGINAÇÃO DE TEXTO ---
+  List<String> _dividirTexto(String text, int maxLength) {
+    if (text.isEmpty) return [''];
+    List<String> chunks = [];
+    
+    // Respeita quebras de linha duplas feitas no npc_data.dart
+    List<String> blocos = text.split('\n\n');
+
+    for (String bloco in blocos) {
+      String cleanBloco = bloco.replaceAll('\n', ' ').trim();
+      List<String> words = cleanBloco.split(' ');
+      String currentChunk = '';
+
+      for (String word in words) {
+        if ((currentChunk.length + word.length + 1) > maxLength) {
+          if (currentChunk.isNotEmpty) {
+            chunks.add(currentChunk.trim());
+            currentChunk = '';
+          }
+        }
+        currentChunk += '$word ';
+      }
+      if (currentChunk.isNotEmpty) {
+        chunks.add(currentChunk.trim());
+      }
+    }
+    return chunks.isEmpty ? [text] : chunks;
+  }
+
   void _abrirDialogoNPC() {
     if (_biomaAtual == null) return;
-    final dialogo = NpcData.dialogos[_biomaAtual!.id];
 
+    if (_dialogoJaConcluido(_biomaAtual!.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Você já completou o desafio deste local e obteve o necessário!"),
+          backgroundColor: Colors.blueGrey,
+        ),
+      );
+      return;
+    }
+
+    final dialogo = NpcData.dialogos[_biomaAtual!.id];
     if (dialogo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("O personagem deste local ainda está descansando... "), backgroundColor: Colors.grey),
@@ -158,51 +227,48 @@ class _CharacterScreenState extends State<CharacterScreen>
       return;
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.brown.shade900,
-          title: Row(
-            children: [
-              const Icon(Icons.auto_awesome, color: Colors.amber),
-              const SizedBox(width: 8),
-              Expanded(child: Text(dialogo.npcName, style: const TextStyle(color: Colors.amber, fontSize: 18))),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Text(dialogo.message, style: const TextStyle(color: Colors.white, fontSize: 14)),
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actionsOverflowDirection: VerticalDirection.down,
-          actions: dialogo.choices.map((escolha) {
-            return ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: escolha.isCorrect ? Colors.blue.shade800 : Colors.orange.shade800,
-                minimumSize: const Size(double.infinity, 40), 
-              ),
-              onPressed: () {
-                Navigator.pop(context); 
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(escolha.feedback), 
-                    backgroundColor: escolha.isCorrect ? Colors.green : Colors.red
-                  ),
-                );
+    setState(() {
+      _dialogoAtualObjeto = dialogo;
+      _paginasDialogo = _dividirTexto(dialogo.message, 100); // Divide a mensagem inicial
+      _paginaAtualDialogo = 0;
+      
+      _exibindoDialogo = true;
+      _mostrarOpcoes = false; // Começa escondido até o fim do texto
+      _aguardandoFeedback = false; 
+      _respostaCorretaSelecionada = false;
+      _condicaoDesbloqueioPendente = null;
+    });
+  }
 
-                if (escolha.isCorrect && escolha.conditionToUnlock != null) {
-                  _tentarDesbloqueio(escolha.conditionToUnlock!);
-                  finalizarCharada(escolha.conditionToUnlock!); 
-                }
-              },
-              child: Text(escolha.text, style: const TextStyle(color: Colors.white)),
-            );
-          }).toList(),
-        );
+  void _avancarCaixaDialogo() {
+    if (_mostrarOpcoes) return; // Se está aguardando o clique nos botões, não faz nada.
+
+    setState(() {
+      if (_paginaAtualDialogo < _paginasDialogo.length - 1) {
+        // Vai para a próxima página de texto
+        _paginaAtualDialogo++;
+      } else {
+        // Acabou o texto da página atual
+        if (!_aguardandoFeedback) {
+          // Terminou de ler a pergunta/história -> Mostra opções
+          _mostrarOpcoes = true;
+        } else {
+          // Terminou de ler o feedback da resposta
+          if (_respostaCorretaSelecionada) {
+            _exibindoDialogo = false; // Fecha a janela
+            if (_condicaoDesbloqueioPendente != null) {
+              _tentarDesbloqueio(_condicaoDesbloqueioPendente!);
+              finalizarCharada(_condicaoDesbloqueioPendente!);
+            }
+          } else {
+            // Se errou a charada, recarrega a pergunta inicial
+            _paginasDialogo = _dividirTexto(_dialogoAtualObjeto!.message, 150);
+            _paginaAtualDialogo = 0;
+            _aguardandoFeedback = false;
+          }
+        }
       }
-    );
+    });
   }
 
   void _tentarDesbloqueio(String condicaoAtendida) {
@@ -213,7 +279,7 @@ class _CharacterScreenState extends State<CharacterScreen>
         return;
       }
 
-      // --- Lógica normal para os biomas (1 ao 4) ---
+      // Lógica normal para os biomas
       for (var bioma in BiomaData.biomas) {
         if (!bioma.isUnlocked) {
           if (bioma.unlockBiome(condicaoAtendida)) {
@@ -257,34 +323,35 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
   }
 
-void finalizarCharada(String condicao) async {
+  void finalizarCharada(String condicao) async {
     setState(() {
       switch (condicao) {
-        case 'charada_ancia_respondida': // Abre a Geleira
+        case 'charada_ancia_respondida': 
           if (meuSave.flags['falou_com_ancia'] == true) return;
           meuSave.flags['falou_com_ancia'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_02')) meuSave.biomasAbertos.add('bioma_02');
           break;
           
-        case 'geleira_concluida': // Abre o Oceano
+        case 'geleira_concluida': 
           if (meuSave.flags['tem_remo'] == true) return;
           meuSave.flags['tem_remo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_03')) meuSave.biomasAbertos.add('bioma_03');
           break;
           
-        case 'dica_pirata_recebida': // Abre o Deserto 
+        case 'falou_com_pirata':
+        case 'dica_pirata_recebida': 
           if (meuSave.flags['falou_com_pirata'] == true) return;
           meuSave.flags['falou_com_pirata'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_04')) meuSave.biomasAbertos.add('bioma_04');
           break;
           
-        case 'reliquia_coletada': // Abre o Vulcão 
+        case 'reliquia_coletada': 
           if (meuSave.flags['tem_reliquia_fogo'] == true) return;
           meuSave.flags['tem_reliquia_fogo'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_05')) meuSave.biomasAbertos.add('bioma_05');
           break;
           
-        case 'chama_obtida': // Aciona o final do jogo
+        case 'chama_obtida': 
           if (meuSave.flags['tem_chama_magica'] == true) return;
           meuSave.flags['tem_chama_magica'] = true;
           break;
@@ -294,9 +361,7 @@ void finalizarCharada(String condicao) async {
     await _saveService.atualizarSave(meuSave);
   }
 
-  // --- NOVA FUNÇÃO DE VOLTAR E SALVAR ---
   void _voltarParaHome() {
-    // Salva o progresso atual antes de voltar
     _salvarProgresso(mostrarSnackbar: false);
     
     Navigator.pushReplacement(
@@ -306,6 +371,134 @@ void finalizarCharada(String condicao) async {
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 600),
+      ),
+    );
+  }
+
+  // --- RENDERIZA O SPRITE DO NPC ---
+  Widget _buildNpcSpriteStyleLightNovel() {
+    if (!_exibindoDialogo || _biomaAtual == null) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 70, // AJUSTE: Desceu para colar na caixa de diálogo
+      right: -30, 
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.65, 
+        constraints: const BoxConstraints(maxWidth: 350),
+        child: Opacity(
+          opacity: 0.95, 
+          child: Image.asset(
+            'assets/images/npc_${_biomaAtual!.id}.png', 
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Container(
+                  width: 200, height: 300,
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade800.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.amber, width: 2),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.amber, size: 100),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- RENDERIZA A CAIXA DE DIÁLOGO E PAGINAÇÃO ---
+  Widget _buildCaixaDialogoLightNovel() {
+    if (_dialogoAtualObjeto == null || _paginasDialogo.isEmpty) return const SizedBox.shrink();
+
+    bool temMaisTexto = _paginaAtualDialogo < _paginasDialogo.length - 1;
+    String textoExibido = _paginasDialogo[_paginaAtualDialogo];
+
+    return GestureDetector(
+      onTap: _avancarCaixaDialogo, // Avança a página ou fecha o diálogo
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.85), 
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.amber.shade700.withOpacity(0.7), width: 2),
+          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, -2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _dialogoAtualObjeto!.npcName,
+              style: const TextStyle(color: Colors.amber, fontSize: 17, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 2, color: Colors.black)]),
+            ),
+            
+            // Controle de Exibição
+            if (_mostrarOpcoes) ...[
+              // AJUSTE: Removeu o texto em cima quando mostra opções
+              const SizedBox(height: 16),
+              Column(
+                children: _dialogoAtualObjeto!.choices.map((escolha) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade900.withOpacity(0.9),
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.amber.shade700, width: 1.5),
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        // Ao clicar na opção, o feedback vira a nova sequência de páginas
+                        setState(() {
+                          _mostrarOpcoes = false;
+                          _aguardandoFeedback = true;
+                          _respostaCorretaSelecionada = escolha.isCorrect;
+                          _condicaoDesbloqueioPendente = escolha.conditionToUnlock;
+                          
+                          _paginasDialogo = _dividirTexto(escolha.feedback, 150);
+                          _paginaAtualDialogo = 0;
+                        });
+                      },
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(escolha.text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ] else ...[
+              const SizedBox(height: 10),
+              // Texto fracionado
+              Text(
+                textoExibido,
+                style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: temMaisTexto
+                    ? const Icon(Icons.arrow_drop_down, color: Colors.amber, size: 28) // Indicador de "tem mais texto"
+                    : Text(
+                        _aguardandoFeedback 
+                          ? (_respostaCorretaSelecionada ? "Toque para continuar ▶" : "Toque para tentar novamente ↩")
+                          : "Toque para ver opções ▶",
+                        style: TextStyle(
+                          color: _aguardandoFeedback 
+                            ? (_respostaCorretaSelecionada ? Colors.green.shade300 : Colors.orange.shade300)
+                            : Colors.white54, 
+                          fontSize: 12, fontStyle: FontStyle.italic
+                        ),
+                      ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -345,7 +538,6 @@ void finalizarCharada(String condicao) async {
       return Scaffold(
         backgroundColor: Colors.grey.shade900,
         extendBodyBehindAppBar: true, 
-        // --- BOTÃO DE SAIR NO RADAR ---
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -358,7 +550,6 @@ void finalizarCharada(String condicao) async {
             const SizedBox(width: 8),
           ],
         ),
-        // Setinha com distância + Nome do próximo bioma
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -390,9 +581,12 @@ void finalizarCharada(String condicao) async {
     }
 
     String imagemFundo = _biomaAtual!.assetImagePath;
-    // A imagem só muda se a chave for ligada pelo botão
-    if (_biomaAtual!.id == 'bioma_01' && _chamaColocadaNaTorre) {
-      imagemFundo = 'assets/images/floresta_revitalizada.jpg'; 
+    if (_biomaAtual!.id == 'bioma_01' && meuSave.flags['tem_chama_magica'] == true) {
+      if (_chamaColocadaNaTorre) {
+        imagemFundo = 'assets/images/floresta_revitalizada.jpg'; 
+      } else {
+        imagemFundo = 'assets/images/floresta_ruim.jpg';
+      }
     }
 
     int totalBiomas = BiomaData.biomas.length;
@@ -400,9 +594,8 @@ void finalizarCharada(String condicao) async {
 
     return Scaffold(
       extendBodyBehindAppBar: true, 
-      // --- BOTÃO DE SAIR NO TOPO DIREITO DO BIOMA ---
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Esconde a setinha padrão se houver
+        automaticallyImplyLeading: false, 
         title: Text(_biomaAtual!.name, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white, shadows: [Shadow(offset: Offset(-1.5, -1.5), color: Colors.black), Shadow(offset: Offset(1.5, 1.5), color: Colors.black)])),
         backgroundColor: Colors.transparent, 
         elevation: 0, 
@@ -425,7 +618,29 @@ void finalizarCharada(String condicao) async {
           ),
           Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87], stops: [0.4, 1.0]))),
           
-          // Wigdets de Nome e Nível do jogador
+          // AJUSTE: Degradê Horizontal Preto Atrás da Caixa de Diálogo
+          if (_exibindoDialogo)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black54,
+                      Colors.black87,
+                      Colors.black,
+                    ],
+                    stops: [0.5, 0.65, 0.8, 1.0],
+                  ),
+                ),
+              ),
+            ),
+
+          // Camada do Sprite NPC Light Novel
+          _buildNpcSpriteStyleLightNovel(),
+
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -464,10 +679,7 @@ void finalizarCharada(String condicao) async {
                                 Icons.navigation, 
                                 color: Colors.amberAccent, 
                                 size: 42, 
-                                shadows: [
-                                  Shadow(blurRadius: 8, color: Colors.black),
-                                  Shadow(blurRadius: 12, color: Colors.amber),
-                                ]
+                                shadows: [Shadow(blurRadius: 8, color: Colors.black), Shadow(blurRadius: 12, color: Colors.amber)]
                               )
                             ),
                             const SizedBox(height: 6),
@@ -478,121 +690,114 @@ void finalizarCharada(String condicao) async {
                     ],
                   ),
 
-                  // Barra de progresso
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Controle Inferior Dinâmico (Explorar vs Dialogando)
+                  _exibindoDialogo 
+                      ? _buildCaixaDialogoLightNovel()
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("Sincronização com a Chama", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
-                                Text("$biomasExplorados/$totalBiomas Biomas", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: biomasExplorados / totalBiomas, 
-                                backgroundColor: Colors.white12, 
-                                color: Colors.amber.shade600, 
-                                minHeight: 5 
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      
-                      // Finalização do jogo - Coloca a Chama Mágica na torre
-                      SizedBox(
-                        height: 45,
-                        child: (nivelProgresso >= 5 && _biomaAtual!.id == 'bioma_01')
-                            ? ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green.shade700,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                icon: const Icon(Icons.auto_awesome),
-                                label: const Text("Colocar chama mágica na torre", style: TextStyle(fontWeight: FontWeight.bold)),
-
-                                onPressed: () async {
-                                // Muda a imagem de fundo para a revitalizada
-                                setState(() {
-                                  _chamaColocadaNaTorre = true;
-                                });
-
-                                // Dá um pequeno delay para o jogador ver a floresta mudando
-                                await Future.delayed(const Duration(milliseconds: 600));
-
-                                // Mostra o pop-up de vitória
-                                if (!context.mounted) return;
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (context) => AlertDialog(
-                                    backgroundColor: Colors.brown.shade900,
-                                    title: const Text("MISSÃO CUMPRIDA!", style: TextStyle(color: Colors.amber)),
-                                    content: const Text(
-                                      "Uma onda de luz se espalha! O Vilarejo e a Floresta foram salvos dos monstros. A paz finalmente retornou!",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    actions: [
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                                        onPressed: () {
-                                          // Marca a vitória no Firebase e chama a função de navegação
-                                          setState(() => meuSave.flags['venceu_jogo'] = true);
-                                          _voltarParaHome(); 
-                                        },
-                                        child: const Text("FINALIZAR JORNADA", style: TextStyle(color: Colors.white)),
-                                      ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24)),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text("Objetivo", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      Text("$biomasExplorados/$totalBiomas Biomas", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
-                                );
-                              },
-                              )
-                            : ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.amber.shade700,
-                                  foregroundColor: Colors.black,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                icon: const Icon(Icons.search, size: 20),
-                                label: const Text("Explorar o Local", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                onPressed: _abrirDialogoNPC, 
+                                  const SizedBox(height: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: LinearProgressIndicator(
+                                      value: biomasExplorados / totalBiomas, 
+                                      backgroundColor: Colors.white12, 
+                                      color: Colors.amber.shade600, 
+                                      minHeight: 5 
+                                    ),
+                                  ),
+                                ],
                               ),
-                      )
-                    ],
-                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            
+                            SizedBox(
+                              height: 45,
+                              child: (nivelProgresso >= 5 && _biomaAtual!.id == 'bioma_01')
+                                  ? ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green.shade700,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      icon: const Icon(Icons.auto_awesome),
+                                      label: const Text("Colocar chama mágica na torre", style: TextStyle(fontWeight: FontWeight.bold)),
+                                      onPressed: () async {
+                                        setState(() {
+                                          _chamaColocadaNaTorre = true;
+                                        });
+
+                                        await Future.delayed(const Duration(milliseconds: 600));
+
+                                        if (!context.mounted) return;
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) => AlertDialog(
+                                            backgroundColor: Colors.brown.shade900,
+                                            title: const Text("MISSÃO CUMPRIDA!", style: TextStyle(color: Colors.amber)),
+                                            content: const Text(
+                                              "Uma onda de luz se espalha! O Vilarejo e a Floresta foram salvos dos monstros. A paz finalmente retornou!",
+                                              style: TextStyle(color: Colors.white),
+                                            ),
+                                            actions: [
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                                onPressed: () {
+                                                  setState(() => meuSave.flags['venceu_jogo'] = true);
+                                                  _voltarParaHome(); 
+                                                },
+                                                child: const Text("FINALIZAR JORNADA", style: TextStyle(color: Colors.white)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber.shade700,
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      icon: const Icon(Icons.search, size: 20),
+                                      label: const Text("Explorar o Local", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                      onPressed: _abrirDialogoNPC, 
+                                    ),
+                            )
+                          ],
+                        ),
                 ],
               ),
             ),
           ),
-          // Aparecimento da chama mágica para coleta
+          
+          // Animação de Coleta da Chama Mágica
           if (_exibirAnimacaoChama)
             Container(
-              color: Colors.black87, // Escurece o fundo para dar destaque
+              color: Colors.black87,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Ícone da Chama com Brilho
                     const Icon(
                       Icons.local_fire_department,
                       color: Colors.orangeAccent,
                       size: 150,
-                      shadows: [
-                        Shadow(blurRadius: 50, color: Colors.red),
-                        Shadow(blurRadius: 100, color: Colors.orange),
-                      ],
+                      shadows: [Shadow(blurRadius: 50, color: Colors.red), Shadow(blurRadius: 100, color: Colors.orange)],
                     ),
                     const SizedBox(height: 30),
                     const Text(
@@ -607,11 +812,11 @@ void finalizarCharada(String condicao) async {
                       ),
                       onPressed: () {
                         setState(() {
-                          _exibirAnimacaoChama = false; // Esconde a chama
-                          meuSave.flags['chama_coletada'] = true; // Registra no save
+                          _exibirAnimacaoChama = false; 
+                          meuSave.flags['chama_coletada'] = true; 
                         });
                         _salvarProgresso(mostrarSnackbar: false);
-                        _mostrarDialogoFinal(); // Chama o diálogo de voltar para a floresta
+                        _mostrarDialogoFinal(); 
                       },
                       child: const Text("COLETAR CHAMA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
