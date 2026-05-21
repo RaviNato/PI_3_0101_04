@@ -6,6 +6,7 @@ import 'bioma_data.dart';
 import 'npc_data.dart';
 import 'models/game_save.dart';
 import 'services/save_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart'; // Usado para voltar à Home
 import 'dart:math' as math;
 
@@ -33,6 +34,7 @@ class _CharacterScreenState extends State<CharacterScreen>
   int nivelProgresso = 0;
   bool _salvando = false;
   bool _chamaColocadaNaTorre = false; 
+  String _nomeJogador = "";
 
   // --- VARIÁVEIS DO SISTEMA LIGHT NOVEL PAGINADO ---
   bool _exibindoDialogo = false;
@@ -52,7 +54,7 @@ class _CharacterScreenState extends State<CharacterScreen>
   @override
   void initState() {
     super.initState();
-
+    _carregarNome();
     meuSave = widget.initialSave;
     
     // Lógica para garantir o nível
@@ -73,6 +75,13 @@ class _CharacterScreenState extends State<CharacterScreen>
     );
 
     _iniciarRastreamento();
+  }
+
+  void _carregarNome() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _nomeJogador = prefs.getString('nome_aventureiro') ?? "Herói";
+    });
   }
 
   void _sincronizarBiomasComSave() {
@@ -309,14 +318,6 @@ class _CharacterScreenState extends State<CharacterScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Voltar ao Bioma", style: TextStyle(color: Colors.amber)),
-          ),
-          TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Tem certeza? O vilarejo ainda corre perigo!")),
-              );
-            },
-            child: const Text("Permanecer", style: TextStyle(color: Colors.grey)),
           ),
         ],
       ),
@@ -653,13 +654,35 @@ class _CharacterScreenState extends State<CharacterScreen>
                     children: [
                       Row(
                         children: [
-                          const CircleAvatar(radius: 24, backgroundColor: Colors.black54, child: Icon(Icons.person, color: Colors.white)),
+                        Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black54,
+                              border: Border.all(
+                                color: Colors.amber.shade600, // Uma bordinha dourada para dar destaque de herói
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.shield, // Ícone de Escudo Medieval / Defensor / Aventura
+                              color: Colors.amberAccent, // Cor dourada brilhante
+                              size: 26,
+                            ),
+                          ),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Herói: Jorge', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, shadows: [Shadow(offset: Offset(1.2, 1.2), color: Colors.black)])),
-                              Text('Nível $biomasExplorados', style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold, shadows: [Shadow(offset: Offset(1.0, 1.0), color: Colors.black)])),
+                              Text(
+                                'Aventureiro(a): $_nomeJogador', 
+                                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold, shadows: [Shadow(offset: Offset(1.2, 1.2), color: Colors.black)])
+                              ),
+                              Text(
+                                'Nível $biomasExplorados', 
+                                style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold, shadows: [Shadow(offset: Offset(1.0, 1.0), color: Colors.black)])
+                              ),
                             ],
                           ),
                         ],

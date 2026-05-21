@@ -5,7 +5,7 @@ import 'bioma_data.dart';
 
 class LocationService {
   // 1. Flag de desenvolvedor. Mude para 'false' quando for testar andando pelo campus.
-  static const bool isDevMode = true;
+  static const bool isDevMode = false;
 
   // Função para verificar permissões e pegar a localização atual
   StreamSubscription<Position>? positionStream;
