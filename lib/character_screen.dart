@@ -86,9 +86,7 @@ class _CharacterScreenState extends State<CharacterScreen>
 
   void _sincronizarBiomasComSave() {
     for (final bioma in BiomaData.biomas) {
-      if (meuSave.biomasAbertos.contains(bioma.id)) {
-        bioma.isUnlocked = true;
-      }
+      bioma.isUnlocked = meuSave.biomasAbertos.contains(bioma.id);
     }
   }
 
@@ -340,7 +338,6 @@ class _CharacterScreenState extends State<CharacterScreen>
           break;
           
         case 'falou_com_pirata':
-        case 'dica_pirata_recebida': 
           if (meuSave.flags['falou_com_pirata'] == true) return;
           meuSave.flags['falou_com_pirata'] = true;
           if (!meuSave.biomasAbertos.contains('bioma_04')) meuSave.biomasAbertos.add('bioma_04');
@@ -508,11 +505,10 @@ class _CharacterScreenState extends State<CharacterScreen>
   Widget build(BuildContext context) {
     Bioma? biomaAlvo;
     String nomeDestino = 'Destino';
-
     if (nivelProgresso < BiomaData.biomas.length) {
       biomaAlvo = BiomaData.biomas[nivelProgresso];
       nomeDestino = biomaAlvo.name;
-    } else if (nivelProgresso >= BiomaData.biomas.length) {
+    } else {
       biomaAlvo = BiomaData.biomas[0]; 
       nomeDestino = "Retorno a Floresta";
     }

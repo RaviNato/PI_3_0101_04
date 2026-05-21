@@ -56,7 +56,7 @@ class BiomaData {
           radiusInMeters: 50.0,
           isUnlocked: false,
           assetImagePath: 'assets/images/deserto.jpg',
-          unlockCondition: 'dica_pirata_recebida',
+          unlockCondition: 'falou_com_pirata',
         ),
 
         Bioma(
