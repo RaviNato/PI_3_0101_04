@@ -52,15 +52,16 @@ class NpcData {
     // A Geleira dá a chave para abrir o OCEANO
     'bioma_02': NpcDialog(
       npcName: 'Guardião do Gelo',
-      message: "Texto da charada da Geleira aqui...",
+      message: "Se deseja atravessar estas terras congeladas, responda:
+                'O que quanto mais se tira, maior fica'?",
       choices: [
         DialogChoice(
-          text: 'Resposta Certa', 
-          feedback: 'Muito bem!', 
+          text: 'Buraco', 
+          feedback: 'Correto', 
           isCorrect: true, 
           conditionToUnlock: 'geleira_concluida', // Abre o Oceano
         ),
-        DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
+        DialogChoice(text: 'Gelo', feedback: 'Resposta incorreta...', isCorrect: false),
       ],
     ),
 
@@ -86,18 +87,20 @@ class NpcData {
     ),
 
     // --- BIOMA 4: DESERTO ---
-    // O Deserto dá a chave para abrir o VULCÃO
     'bioma_04': NpcDialog(
       npcName: 'Múmia Anciã',
-      message: "Texto da charada do Deserto aqui...",
+      message: "Tu desejas a relíquia? Então decifre meus dois enigmas e tu a terás. Enigma 1: O que é, o que é:
+                Não tem pernas, mas percorre o deserto inteiro; não tem boca, mas pode “engolir” tudo pelo caminho?",
       choices: [
+        DialogChoice(text: 'Vento', feedback: 'quer retornar para sua origem ou quer tentar responder meus enigmas novamente?', isCorrect: false),
         DialogChoice(
-          text: 'Resposta Certa', 
-          feedback: 'Muito bem!', 
+          text: 'Tempestade de areia', 
+          feedback: 'Correto!', 
           isCorrect: true, 
           conditionToUnlock: 'reliquia_coletada', // Abre o Vulcão
         ),
-        DialogChoice(text: 'Resposta Errada', feedback: 'Tente de novo...', isCorrect: false),
+        DialogChoice(text: 'Sol', feedback: 'quer retornar para sua origem ou quer tentar responder meus enigmas novamente?', isCorrect: false),
+        DialogChoice(text: 'Rio', feedback: 'quer retornar para sua origem ou quer tentar responder meus enigmas novamente?', isCorrect: false),
       ],
     ),
 
