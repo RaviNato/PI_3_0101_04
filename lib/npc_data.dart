@@ -52,8 +52,7 @@ class NpcData {
     // A Geleira dá a chave para abrir o OCEANO
     'bioma_02': NpcDialog(
       npcName: 'Guardião do Gelo',
-      message: "Se deseja atravessar estas terras congeladas, responda:
-                'O que quanto mais se tira, maior fica'?",
+      message: "Se deseja atravessar estas terras congeladas, responda: 'O que quanto mais se tira, maior fica'?",
       choices: [
         DialogChoice(
           text: 'Buraco', 
@@ -89,8 +88,7 @@ class NpcData {
     // --- BIOMA 4: DESERTO ---
     'bioma_04': NpcDialog(
       npcName: 'Múmia Anciã',
-      message: "Tu desejas a relíquia? Então decifre meus dois enigmas e tu a terás. Enigma 1: O que é, o que é:
-                Não tem pernas, mas percorre o deserto inteiro; não tem boca, mas pode “engolir” tudo pelo caminho?",
+      message: "Tu desejas a relíquia? Então decifre meus dois enigmas e tu a terás. Enigma 1: O que é, o que é: Não tem pernas, mas percorre o deserto inteiro; não tem boca, mas pode 'engolir' tudo pelo caminho?",
       choices: [
         DialogChoice(text: 'Vento', feedback: 'quer retornar para sua origem ou quer tentar responder meus enigmas novamente?', isCorrect: false),
         DialogChoice(
