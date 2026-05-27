@@ -102,19 +102,33 @@ class NpcData {
       ],
     ),
 
-    // --- BIOMA 5: VULCÃO ---
-    // O Vulcão encerra a jornada
+// --- BIOMA 5: VULCÃO ---
+    // Encerra o jogo
     'bioma_05': NpcDialog(
       npcName: 'Ignis, o Espírito do Fogo',
-      message: "Você chegou ao coração do Vulcão. Resolva o último enigma para obter a Chama: 'Sou o que resta quando o fogo se apaga, mas no escuro, sou o que guia os perdidos.'",
+      message: "Você provou seu valor ao chegar ao meu domínio escaldante. Mas o poder não é entregue a qualquer um. Diga-me, mortal: 'Nasço do caos derretido e devoro as sombras, mas uma simples lágrima pode me destruir. Não tenho corpo material, mas danço. O que sou?'",
       choices: [
         DialogChoice(
+          text: 'O Magma', 
+          feedback: 'O magma possui corpo, peso e não morre com uma simples lágrima. Sua mente ainda está nublada pelo calor.', 
+          isCorrect: false
+        ),
+        DialogChoice(
+          text: 'A Fumaça', 
+          feedback: 'A fumaça de fato dança, mas não devora as sombras... ela as cria. Tente novamente.', 
+          isCorrect: false
+        ),
+        DialogChoice(
           text: 'A Chama Mágica',
-          feedback: 'Você provou seu valor! A Chama é sua.',
+          feedback: 'Exato! Você enxergou além da matéria. A Chama Mágica é sua!',
           isCorrect: true,
           conditionToUnlock: 'chama_obtida', // Aciona o final do jogo
         ),
-        DialogChoice(text: 'Cinzas', feedback: 'Quase, mas não.', isCorrect: false),
+        DialogChoice(
+          text: 'A Brasa', 
+          feedback: 'A brasa não dança, ela apenas agoniza antes do seu fim. Pense com mais clareza.', 
+          isCorrect: false
+        ),
       ],
     ),
   };
