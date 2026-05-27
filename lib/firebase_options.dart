@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'omnizonaa.firebasestorage.app',
     measurementId: 'G-5QDJ060R56',
   );
+
 }

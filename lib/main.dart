@@ -7,6 +7,10 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   // Trava o aplicativo nas duas orientações horizontais possíveis (padrão e invertida)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,

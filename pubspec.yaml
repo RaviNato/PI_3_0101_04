@@ -22,7 +22,7 @@ dependencies:
   shared_preferences: ^2.5.5
 
   # Som ambiente (descomente quando tiver os assets de áudio)
-  # audioplayers: ^6.1.0
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -34,8 +34,7 @@ flutter:
 
   assets:
     - assets/images/
-  # Descomente e coloque os assets reais quando disponíveis:
-  #   - assets/audio/ambient_rpg.mp3
+    - assets/sounds/
 
   # fonts:
   #   - family: MedievalSharp   # exemplo de fonte temática

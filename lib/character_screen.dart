@@ -9,6 +9,7 @@ import 'services/save_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart'; // Usado para voltar à Home
 import 'dart:math' as math;
+import 'package:audioplayers/audioplayers.dart';
 
 class CharacterScreen extends StatefulWidget {
   final GameSave initialSave;
@@ -51,6 +52,9 @@ class _CharacterScreenState extends State<CharacterScreen>
   late AnimationController _idleController;
   late Animation<double> _idleBob;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _idBiomaDaMusicaAtual;
+
   @override
   void initState() {
     super.initState();
@@ -90,10 +94,30 @@ class _CharacterScreenState extends State<CharacterScreen>
     }
   }
 
+  void _gerenciarMusicaDoBioma(Bioma? biomaOndeEstou) async {
+    if (biomaOndeEstou == null || !biomaOndeEstou.isUnlocked) return;
+
+    // Se o jogador continua no mesmo bioma, não faz nada (evita reiniciar a música do zero)
+    if (_idBiomaDaMusicaAtual == biomaOndeEstou.id) return;
+
+    // Se chegou aqui, significa que o jogador mudou de bioma!
+    _idBiomaDaMusicaAtual = biomaOndeEstou.id;
+
+    await _audioPlayer.setVolume(0.0); 
+    await _audioPlayer.stop(); // Para a música do bioma anterior
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Configura o loop infinito
+    
+    // Toca a música correspondente (Ex: audio/musica_bioma_01.mp3)
+    String nomeDoArquivo = 'sounds/musica_${biomaOndeEstou.id}.ogg';
+    await _audioPlayer.play(AssetSource(nomeDoArquivo));
+    await _audioPlayer.setVolume(0.2); // Volume em 60% (escala de 0.0 a 1.0)
+  }
+
   @override
   void dispose() {
     _idleController.dispose();
     _locationService.stopTracking();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -102,26 +126,35 @@ class _CharacterScreenState extends State<CharacterScreen>
       await _locationService.determinePosition();
       
       _locationService.startTracking((Position position) {
+        Bioma? biomaOndeEstou = _locationService.verificarAmbienteAtual(position);
+        Bioma? biomaValido;
+        String mensagem;
+
+        if (biomaOndeEstou != null) {
+          int indiceBioma = BiomaData.biomas.indexWhere((b) => b.id == biomaOndeEstou.id);
+          if (indiceBioma <= nivelProgresso) {
+            biomaValido = biomaOndeEstou;
+            mensagem = "Explorando: ${biomaValido.name}";
+          } else {
+            biomaValido = null; 
+            mensagem = "Caminho bloqueado! Complete a missão de ${BiomaData.biomas[nivelProgresso].name} primeiro."; 
+          }
+        } else {
+          biomaValido = null; 
+          mensagem = "Fora da área de jogo.";
+        }
+
+        _gerenciarMusicaDoBioma(biomaValido);
+
+        if (!mounted) return;
         setState(() {
           _posicaoAtual = position;
-          Bioma? biomaOndeEstou = _locationService.verificarAmbienteAtual(position);
-          
-          if (biomaOndeEstou != null) {
-            int indiceBioma = BiomaData.biomas.indexWhere((b) => b.id == biomaOndeEstou.id);
-            if (indiceBioma <= nivelProgresso) {
-              _biomaAtual = biomaOndeEstou;
-              _mensagemGps = "Explorando: ${_biomaAtual!.name}";
-            } else {
-              _biomaAtual = null; 
-              _mensagemGps = "Caminho bloqueado! Complete a missão de ${BiomaData.biomas[nivelProgresso].name} primeiro."; 
-            }
-          } else {
-            _biomaAtual = null; 
-            _mensagemGps = "Fora da área de jogo.";
-          }
+          _biomaAtual = biomaValido;
+          _mensagemGps = mensagem;
         });
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _mensagemGps = "Erro no Astrolábio: $e";
       });
@@ -214,6 +247,7 @@ class _CharacterScreenState extends State<CharacterScreen>
   }
 
   void _abrirDialogoNPC() {
+  
     if (_biomaAtual == null) return;
 
     if (_dialogoJaConcluido(_biomaAtual!.id)) {
@@ -249,7 +283,6 @@ class _CharacterScreenState extends State<CharacterScreen>
 
   void _avancarCaixaDialogo() {
     if (_mostrarOpcoes) return; // Se está aguardando o clique nos botões, não faz nada.
-
     setState(() {
       if (_paginaAtualDialogo < _paginasDialogo.length - 1) {
         // Vai para a próxima página de texto
@@ -359,7 +392,8 @@ class _CharacterScreenState extends State<CharacterScreen>
     await _saveService.atualizarSave(meuSave);
   }
 
-  void _voltarParaHome() {
+  void _voltarParaHome() async {
+    await _audioPlayer.stop();
     _salvarProgresso(mostrarSnackbar: false);
     
     Navigator.pushReplacement(
@@ -775,7 +809,8 @@ class _CharacterScreenState extends State<CharacterScreen>
                                             actions: [
                                               ElevatedButton(
                                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                                                onPressed: () {
+                                                onPressed: () async {
+                                                  if (!mounted) return;
                                                   setState(() => meuSave.flags['venceu_jogo'] = true);
                                                   _voltarParaHome(); 
                                                 },
