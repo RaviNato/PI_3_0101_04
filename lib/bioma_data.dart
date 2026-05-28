@@ -29,8 +29,8 @@ class BiomaData {
         Bioma(
           id: 'bioma_02',
           name: 'Geleira',
-          latitude: -22.832475,   // Entorno do CT — PUC-Campinas
-          longitude: -47.052738,  
+          latitude: -22.833276,   // Entorno do CT — PUC-Campinas
+          longitude: -47.052682,  
           radiusInMeters: 50.0,
           isUnlocked: false,
           assetImagePath: 'assets/images/geleira.jpg',
