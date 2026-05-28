@@ -569,8 +569,7 @@ class _CharacterScreenState extends State<CharacterScreen> with TickerProviderSt
         biomaAlvo.longitude,
       );
 
-      double heading = _posicaoAtual!.heading;
-      anguloSetinha = (bearing - heading) * (math.pi / 180);
+      anguloSetinha = bearing * (math.pi / 180);
     }
 
     if (_biomaAtual == null) {

@@ -18,8 +18,8 @@ class BiomaData {
         Bioma(
           id: 'bioma_01',
           name: 'Floresta',
-          latitude: -22.834115,   // Entorno do Prédio H15 — PUC-Campinas
-          longitude: -47.052605,
+          latitude: -22.833929,   // Entorno do Prédio H15 — PUC-Campinas
+          longitude: -47.052659,
           radiusInMeters: 50.0,
           isUnlocked: true,     // Bioma inicial — sempre aberto
           assetImagePath: 'assets/images/floresta.jpg',
@@ -40,8 +40,8 @@ class BiomaData {
         Bioma(
           id: 'bioma_03',
           name: 'Oceano',
-          latitude: -22.833065,   // Entorno da Praça de Alimentação — PUC-Campinas
-          longitude: -47.052013,
+          latitude: -22.832987,   // Entorno da Praça de Alimentação — PUC-Campinas
+          longitude: -47.051853,
           radiusInMeters: 50.0,
           isUnlocked: false,
           assetImagePath: 'assets/images/oceano.jpg',
