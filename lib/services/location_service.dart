@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'bioma.dart';     
-import 'bioma_data.dart';
+import '../models/bioma.dart';     
+import '../models/bioma_data.dart';
 
 class LocationService {
   // 1. Flag de desenvolvedor. Mude para 'false' quando for testar andando pelo campus.
@@ -24,16 +24,16 @@ class LocationService {
 
     /*
     Floresta:
-    latitude: -22.834115,   // Entorno do Prédio H15 — PUC-Campinas
-    longitude: -47.052605,
+    latitude: -22.833929,   // Entorno do Prédio H15 — PUC-Campinas
+    longitude: -47.052659,
 
     Geleira:
-    latitude: -22.832475,   // Entorno do CT — PUC-Campinas
-    longitude: -47.052738,  
+    latitude: -22.832536,   // Entorno do CT — PUC-Campinas
+    longitude: -47.052936,
 
     Oceano:
-    latitude: -22.833065,   // Entorno da Praça de Alimentação — PUC-Campinas
-    longitude: -47.052013,
+    latitude: -22.832987,   // Entorno da Praça de Alimentação — PUC-Campinas
+    longitude: -47.051853,
 
     Deserto:
     latitude: -22.833992,   // Entorno do Administrativo I — PUC-Campinas
@@ -41,7 +41,7 @@ class LocationService {
 
     Vulcão:
     latitude: -22.831766,   // Entorno do Administrativo II — PUC-Campinas
-    longitude: -47.050741,  
+    longitude: -47.050741,   
     */
   );
 

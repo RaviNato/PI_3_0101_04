@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'location_service.dart';
-import 'bioma.dart';
-import 'bioma_data.dart';
-import 'npc_data.dart';
-import 'models/game_save.dart';
-import 'services/save_service.dart';
+import '../services/location_service.dart';
+import '../models/bioma.dart';
+import '../models/bioma_data.dart';
+import '../models/npc_data.dart';
+import '../models/game_save.dart';
+import '../services/save_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/home_screen.dart'; // Usado para voltar à Home
+import 'home_screen.dart'; // Usado para voltar à Home
 import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 

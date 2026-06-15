@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../character_screen.dart';
+import 'character_screen.dart';
 import '../services/save_service.dart';
 import '../models/game_save.dart';
 
